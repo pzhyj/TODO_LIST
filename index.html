@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TODO LIST - 待办清单</title>
+<title>TODO LIST - 多人待办清单</title>
 <style>
-/* ========== 基础样式 ========== */
+/* ========== 基础变量 ========== */
 :root {
-    --bg: #f5f5f7;
+    --bg: #f2f2f7;
     --card: #ffffff;
     --text: #1d1d1f;
     --text-secondary: #6e6e73;
@@ -16,11 +16,11 @@
     --primary-hover: #0077ed;
     --danger: #ff3b30;
     --success: #34c759;
-    --warning: #ff9500;
     --overdue: #ff3b30;
     --today: #ff9500;
     --soon: #ffcc02;
     --shadow: 0 2px 12px rgba(0,0,0,0.08);
+    --shadow-lg: 0 20px 60px rgba(0,0,0,0.15);
     --radius: 12px;
     --radius-sm: 8px;
     --transition: 0.2s ease;
@@ -37,46 +37,230 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
-/* ========== 布局 ========== */
-.app {
-    max-width: 720px;
-    margin: 0 auto;
-    padding: 20px 16px 60px;
+/* ========== 登录/注册页 ========== */
+.auth-page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
 }
 
-header {
+.auth-card {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 36px 28px;
+    width: 100%;
+    max-width: 390px;
+    box-shadow: var(--shadow-lg);
     text-align: center;
-    padding: 24px 0 20px;
 }
-header h1 {
-    font-size: 28px;
+
+.auth-card .logo {
+    font-size: 48px;
+    margin-bottom: 8px;
+}
+.auth-card h2 {
+    font-size: 22px;
     font-weight: 700;
-    letter-spacing: -0.5px;
+    margin-bottom: 4px;
 }
-header .subtitle {
+.auth-card .sub {
     color: var(--text-secondary);
-    font-size: 14px;
-    margin-top: 4px;
+    font-size: 13px;
+    margin-bottom: 24px;
 }
+
+.auth-card .field {
+    margin-bottom: 14px;
+    text-align: left;
+}
+.auth-card .field label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 5px;
+}
+.auth-card .field input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+    font-family: inherit;
+    outline: none;
+    transition: border var(--transition);
+    background: #fafafa;
+}
+.auth-card .field input:focus {
+    border-color: var(--primary);
+    background: #fff;
+}
+.auth-card .err {
+    color: var(--danger);
+    font-size: 12px;
+    min-height: 18px;
+    margin-top: 2px;
+}
+
+.auth-card .btn-primary {
+    width: 100%;
+    padding: 12px;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 6px;
+    font-family: inherit;
+    transition: background var(--transition);
+}
+.auth-card .btn-primary:hover { background: var(--primary-hover); }
+
+.auth-card .switch-link {
+    margin-top: 16px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+.auth-card .switch-link a {
+    color: var(--primary);
+    cursor: pointer;
+    text-decoration: none;
+    font-weight: 500;
+}
+.auth-card .switch-link a:hover { text-decoration: underline; }
+
+/* 已有用户快速选择 */
+.user-quick-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+}
+.user-quick-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: #f9f9fb;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    transition: all var(--transition);
+}
+.user-quick-chip:hover {
+    background: #e8f4fd;
+    border-color: var(--primary);
+}
+.user-quick-chip .avatar {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+}
+
+/* ========== 主应用 ========== */
+.app { display: none; }
+.app.active { display: block; }
+.auth-page { display: flex; }
+.auth-page.hidden { display: none; }
+
+.app-inner {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 16px 16px 60px;
+}
+
+/* ========== 顶部栏 ========== */
+.topbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--card);
+    padding: 10px 16px;
+    border-radius: var(--radius);
+    margin-bottom: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    flex-wrap: wrap;
+}
+.topbar .current-user {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 15px;
+}
+.topbar .user-avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+}
+.topbar .topbar-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+}
+
+.btn-sm {
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--card);
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all var(--transition);
+    white-space: nowrap;
+}
+.btn-sm:hover { background: #f0f0f5; }
+.btn-sm.danger { color: var(--danger); border-color: #ffd5d3; }
+.btn-sm.danger:hover { background: #fff0ef; }
 
 /* ========== 工具栏 ========== */
+header {
+    text-align: center;
+    padding: 16px 0 14px;
+}
+header h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
+header .subtitle { color: var(--text-secondary); font-size: 13px; margin-top: 2px; }
+
 .toolbar {
     display: flex;
-    gap: 10px;
-    margin-bottom: 16px;
+    gap: 8px;
+    margin-bottom: 14px;
     flex-wrap: wrap;
 }
 
 .btn {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
+    gap: 5px;
+    padding: 7px 14px;
     border: 1px solid var(--border);
-    border-radius: 20px;
+    border-radius: 18px;
     background: var(--card);
     color: var(--text);
-    font-size: 14px;
+    font-size: 13px;
     cursor: pointer;
     transition: all var(--transition);
     font-family: inherit;
@@ -88,30 +272,53 @@ header .subtitle {
     color: #fff;
     border-color: var(--primary);
 }
-.btn .icon { font-size: 16px; }
+.btn .icon { font-size: 15px; }
+
+/* 用户筛选标签 */
+.user-filter-chips {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+.filter-chip {
+    padding: 5px 12px;
+    border-radius: 14px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: #fff;
+    font-family: inherit;
+    transition: all var(--transition);
+}
+.filter-chip:hover { background: #f0f0f5; }
+.filter-chip.active {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+}
 
 /* ========== 添加表单 ========== */
 .add-form {
     background: var(--card);
     border-radius: var(--radius);
-    padding: 16px;
-    margin-bottom: 16px;
-    box-shadow: var(--shadow);
+    padding: 14px;
+    margin-bottom: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
-
 .add-form .row {
     display: flex;
-    gap: 10px;
+    gap: 8px;
     flex-wrap: wrap;
 }
-
 .add-form input, .add-form textarea {
     flex: 1;
-    min-width: 140px;
-    padding: 10px 14px;
+    min-width: 130px;
+    padding: 9px 12px;
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
-    font-size: 14px;
+    font-size: 13px;
     font-family: inherit;
     outline: none;
     transition: border var(--transition);
@@ -123,35 +330,36 @@ header .subtitle {
 }
 .add-form textarea {
     resize: vertical;
-    min-height: 36px;
-    max-height: 80px;
+    min-height: 34px;
+    max-height: 72px;
 }
 .add-form input[type="datetime-local"] {
-    max-width: 200px;
+    max-width: 190px;
     color-scheme: light;
 }
 .add-form .btn-add {
-    padding: 10px 24px;
+    padding: 9px 20px;
     background: var(--primary);
     color: #fff;
     border: none;
     border-radius: var(--radius-sm);
     font-weight: 600;
-    font-size: 14px;
+    font-size: 13px;
     cursor: pointer;
     flex-shrink: 0;
+    font-family: inherit;
 }
 .add-form .btn-add:hover { background: var(--primary-hover); }
 
 /* ========== 任务卡片 ========== */
-.task-list { display: flex; flex-direction: column; gap: 8px; }
+.task-list { display: flex; flex-direction: column; gap: 7px; }
 
 .task-item {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     background: var(--card);
-    padding: 14px 16px;
+    padding: 12px 14px;
     border-radius: var(--radius);
     box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     cursor: grab;
@@ -161,28 +369,24 @@ header .subtitle {
 }
 .task-item:hover { box-shadow: var(--shadow); }
 .task-item:active { cursor: grabbing; }
-.task-item.dragging {
-    opacity: 0.5;
-    transform: scale(0.98);
-}
-.task-item.drag-over {
-    border-top: 3px solid var(--primary);
-    border-radius: 0;
-}
+.task-item.dragging { opacity: 0.5; transform: scale(0.98); }
+.task-item.drag-over { border-top: 3px solid var(--primary); border-radius: 0; }
 
-/* 紧急程度边框 */
 .task-item.urgency-overdue { border-left-color: var(--overdue); }
 .task-item.urgency-today   { border-left-color: var(--today); }
 .task-item.urgency-soon    { border-left-color: var(--soon); }
 .task-item.completed {
-    opacity: 0.55;
+    opacity: 0.5;
     border-left-color: #ccc;
+}
+.task-item.other-user {
+    background: #fdfdfb;
 }
 
 /* 拖拽手柄 */
 .drag-handle {
     color: #c7c7cc;
-    font-size: 18px;
+    font-size: 16px;
     cursor: grab;
     user-select: none;
     letter-spacing: 2px;
@@ -191,7 +395,7 @@ header .subtitle {
 
 /* 复选框 */
 .checkbox {
-    width: 22px; height: 22px;
+    width: 20px; height: 20px;
     border: 2px solid #d1d1d6;
     border-radius: 50%;
     flex-shrink: 0;
@@ -209,7 +413,7 @@ header .subtitle {
 .checkbox.done::after {
     content: '✓';
     color: #fff;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
 }
 
@@ -225,48 +429,70 @@ header .subtitle {
     color: var(--text-secondary);
 }
 .task-desc {
-    font-size: 13px;
+    font-size: 12px;
     color: var(--text-secondary);
     margin-top: 2px;
     word-break: break-word;
 }
 
-/* 截止时间标签 */
-.deadline-badge {
+/* 创建者标签 */
+.owner-badge {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    font-size: 12px;
-    font-weight: 500;
-    padding: 4px 10px;
-    border-radius: 12px;
+    gap: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 10px;
     white-space: nowrap;
     flex-shrink: 0;
 }
-.deadline-badge.overdue {
-    background: #ffeaea;
-    color: var(--overdue);
+.owner-badge.me {
+    background: #e8f4fd;
+    color: var(--primary);
 }
-.deadline-badge.today {
-    background: #fff3e0;
-    color: var(--today);
+.owner-badge.other {
+    background: #f5f0ff;
+    color: #8944d6;
 }
-.deadline-badge.soon {
-    background: #fffef0;
-    color: #b8a600;
+
+/* 时间信息 */
+.task-meta {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 4px;
 }
-.deadline-badge.normal {
-    background: #f0f0f5;
-    color: var(--text-secondary);
+.task-meta .time-info {
+    font-size: 11px;
+    color: #999;
+    white-space: nowrap;
 }
+
+/* 截止时间 */
+.deadline-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 8px;
+    border-radius: 10px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.deadline-badge.overdue { background: #ffeaea; color: var(--overdue); }
+.deadline-badge.today   { background: #fff3e0; color: var(--today); }
+.deadline-badge.soon    { background: #fffef0; color: #b8a600; }
+.deadline-badge.normal  { background: #f0f0f5; color: var(--text-secondary); }
 
 /* 删除按钮 */
 .btn-delete {
-    width: 30px; height: 30px;
+    width: 28px; height: 28px;
     border: none;
     background: transparent;
     color: #c7c7cc;
-    font-size: 18px;
+    font-size: 17px;
     cursor: pointer;
     border-radius: 50%;
     display: flex;
@@ -275,10 +501,85 @@ header .subtitle {
     flex-shrink: 0;
     transition: all var(--transition);
 }
-.btn-delete:hover {
-    background: #ffeaea;
-    color: var(--danger);
+.btn-delete:hover { background: #ffeaea; color: var(--danger); }
+
+/* 他人任务锁定图标 */
+.lock-icon {
+    font-size: 12px;
+    color: #ccc;
+    flex-shrink: 0;
 }
+
+/* ========== 密码验证弹窗 ========== */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 200;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+.modal-overlay.active { display: flex; }
+
+.modal-box {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 24px 20px;
+    max-width: 360px;
+    width: 100%;
+    box-shadow: var(--shadow-lg);
+    text-align: center;
+}
+.modal-box h4 { font-size: 17px; margin-bottom: 6px; }
+.modal-box .modal-sub {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+}
+.modal-box input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+    font-family: inherit;
+    outline: none;
+    background: #fafafa;
+    text-align: center;
+}
+.modal-box input:focus { border-color: var(--primary); background: #fff; }
+.modal-box .modal-err {
+    color: var(--danger);
+    font-size: 12px;
+    min-height: 18px;
+    margin-top: 4px;
+}
+.modal-box .modal-btns {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+}
+.modal-box .modal-btns button {
+    flex: 1;
+    padding: 10px;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    border: 1px solid var(--border);
+    background: #f5f5f7;
+    color: var(--text);
+    transition: all var(--transition);
+}
+.modal-box .modal-btns .btn-confirm {
+    background: var(--primary);
+    color: #fff;
+    border: none;
+}
+.modal-box .modal-btns .btn-confirm:hover { background: var(--primary-hover); }
 
 /* ========== 日历视图 ========== */
 .calendar-view { display: none; }
@@ -291,23 +592,20 @@ header .subtitle {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 16px;
+    margin-bottom: 14px;
     background: var(--card);
-    padding: 12px 16px;
+    padding: 10px 14px;
     border-radius: var(--radius);
-    box-shadow: var(--shadow);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
-.calendar-header .month-label {
-    font-size: 18px;
-    font-weight: 600;
-}
+.calendar-header .month-label { font-size: 17px; font-weight: 600; }
 .calendar-header .nav-btn {
-    width: 36px; height: 36px;
+    width: 34px; height: 34px;
     border: 1px solid var(--border);
     border-radius: 50%;
     background: #fff;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 15px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -321,47 +619,40 @@ header .subtitle {
     background: var(--border);
     border-radius: var(--radius);
     overflow: hidden;
-    box-shadow: var(--shadow);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
 .calendar-grid .day-header {
     background: #f9f9fb;
-    padding: 10px 4px;
+    padding: 9px 4px;
     text-align: center;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--text-secondary);
 }
 .calendar-grid .day-cell {
     background: var(--card);
-    min-height: 72px;
-    padding: 6px;
+    min-height: 66px;
+    padding: 5px;
     cursor: pointer;
     transition: all var(--transition);
     position: relative;
 }
 .calendar-grid .day-cell:hover { background: #f5f5fa; }
-.calendar-grid .day-cell.other-month { opacity: 0.35; }
-.calendar-grid .day-cell.today {
-    background: #e8f4fd;
-}
+.calendar-grid .day-cell.other-month { opacity: 0.3; }
+.calendar-grid .day-cell.today { background: #e8f4fd; }
 .calendar-grid .day-cell.today .day-num {
     background: var(--primary);
     color: #fff;
     border-radius: 50%;
-    width: 26px; height: 26px;
+    width: 24px; height: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
 }
-
-.day-num {
-    font-size: 13px;
-    font-weight: 500;
-    margin-bottom: 4px;
-}
+.day-num { font-size: 12px; font-weight: 500; margin-bottom: 3px; }
 .day-dots { display: flex; flex-wrap: wrap; gap: 2px; }
 .day-dot {
-    width: 6px; height: 6px;
+    width: 5px; height: 5px;
     border-radius: 50%;
     flex-shrink: 0;
 }
@@ -370,12 +661,7 @@ header .subtitle {
 .day-dot.soon    { background: var(--soon); }
 .day-dot.normal  { background: #ccc; }
 .day-dot.done    { background: var(--success); }
-
-.day-task-count {
-    font-size: 11px;
-    color: var(--text-secondary);
-    margin-top: 2px;
-}
+.day-task-count { font-size: 10px; color: var(--text-secondary); margin-top: 1px; }
 
 /* 日历日详情弹窗 */
 .day-detail {
@@ -392,149 +678,442 @@ header .subtitle {
 .day-detail .panel {
     background: var(--card);
     border-radius: var(--radius);
-    padding: 20px;
-    max-width: 420px;
+    padding: 18px;
+    max-width: 400px;
     width: 100%;
     max-height: 60vh;
     overflow-y: auto;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    box-shadow: var(--shadow-lg);
 }
-.day-detail h4 {
-    font-size: 17px;
-    margin-bottom: 14px;
-}
+.day-detail h4 { font-size: 16px; margin-bottom: 12px; }
 .day-detail .mini-task {
-    padding: 10px 0;
+    padding: 9px 0;
     border-bottom: 1px solid var(--border);
-    font-size: 14px;
+    font-size: 13px;
 }
 .day-detail .mini-task:last-child { border-bottom: none; }
 .day-detail .mini-task .mini-title { font-weight: 500; }
 .day-detail .mini-task .mini-desc {
-    font-size: 12px;
-    color: var(--text-secondary);
-    margin-top: 2px;
+    font-size: 12px; color: var(--text-secondary); margin-top: 2px;
+}
+.day-detail .mini-task .mini-owner {
+    font-size: 11px; color: #8944d6; font-weight: 500;
 }
 .day-detail .btn-close {
     display: block;
     width: 100%;
-    margin-top: 16px;
-    padding: 10px;
+    margin-top: 14px;
+    padding: 9px;
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     cursor: pointer;
-    font-size: 14px;
+    font-size: 13px;
     font-family: inherit;
 }
-.day-detail .empty { color: var(--text-secondary); font-size: 14px; text-align: center; padding: 20px 0; }
+.day-detail .empty { color: var(--text-secondary); font-size: 13px; text-align: center; padding: 18px 0; }
 
-/* ========== 空状态 ========== */
+/* 空状态 */
 .empty-state {
     text-align: center;
-    padding: 48px 20px;
+    padding: 40px 20px;
     color: var(--text-secondary);
 }
-.empty-state .icon { font-size: 48px; margin-bottom: 12px; }
-.empty-state p { font-size: 15px; }
+.empty-state .icon { font-size: 44px; margin-bottom: 10px; }
+.empty-state p { font-size: 14px; }
 
-/* ========== 响应式 ========== */
+/* 响应式 */
 @media (max-width: 500px) {
     .add-form .row { flex-direction: column; }
     .add-form input[type="datetime-local"] { max-width: none; }
     .toolbar { justify-content: center; }
     .task-item { flex-wrap: wrap; }
-    .deadline-badge { margin-left: 34px; }
+    .deadline-badge { margin-left: 30px; }
+    .topbar { justify-content: center; }
+    .topbar .topbar-actions { margin-left: 0; }
 }
 </style>
 </head>
 <body>
 
-<div class="app">
-    <!-- 头部 -->
-    <header>
-        <h1>📋 TODO LIST</h1>
-        <p class="subtitle">待办清单 · 优先级自动排序 · 日历视图</p>
-    </header>
+<!-- ==================== 登录/注册页 ==================== -->
+<div class="auth-page" id="authPage">
+    <div class="auth-card">
+        <div class="logo">📋</div>
+        <h2 id="authTitle">欢迎回来</h2>
+        <p class="sub" id="authSub">请登录你的账号</p>
 
-    <!-- 工具栏 -->
-    <div class="toolbar">
-        <button class="btn active" id="btnListView" onclick="switchView('list')">
-            <span class="icon">📋</span> 列表视图
-        </button>
-        <button class="btn" id="btnCalendarView" onclick="switchView('calendar')">
-            <span class="icon">📅</span> 日历视图
-        </button>
-        <button class="btn" id="btnClearDone" onclick="clearCompleted()" style="margin-left:auto;">
-            <span class="icon">🧹</span> 清除已完成
-        </button>
-    </div>
+        <!-- 已有用户快速选择 -->
+        <div class="user-quick-list" id="quickUserList"></div>
 
-    <!-- 添加表单 -->
-    <div class="add-form" id="addForm">
-        <div class="row">
-            <input type="text" id="inputTitle" placeholder="📝 待办标题（必填）" maxlength="100" autocomplete="off">
-            <textarea id="inputDesc" placeholder="💬 描述（选填）" rows="1" maxlength="200"></textarea>
-            <input type="datetime-local" id="inputDeadline">
-            <button class="btn-add" onclick="addTask()">＋ 添加</button>
+        <div id="authFields">
+            <div class="field">
+                <label>👤 用户名</label>
+                <input type="text" id="authUsername" placeholder="请输入用户名" maxlength="20" autocomplete="off">
+            </div>
+            <div class="field" id="confirmPwdField" style="display:none;">
+                <label>🔑 确认密码</label>
+                <input type="password" id="authConfirmPwd" placeholder="请再次输入密码" maxlength="30">
+            </div>
+            <div class="field">
+                <label>🔒 密码</label>
+                <input type="password" id="authPassword" placeholder="请输入密码" maxlength="30">
+            </div>
+            <div class="err" id="authErr"></div>
+            <button class="btn-primary" id="authBtn" onclick="handleAuth()">登 录</button>
+        </div>
+
+        <div class="switch-link">
+            <span id="switchText">还没有账号？</span>
+            <a id="switchLink" onclick="toggleAuthMode()">注册新账号</a>
         </div>
     </div>
+</div>
 
-    <!-- 列表视图 -->
-    <div class="task-list-view" id="listView">
-        <div class="task-list" id="taskList"></div>
-        <div class="empty-state" id="emptyState">
-            <div class="icon">📭</div>
-            <p>还没有待办事项<br>在上方添加一个吧 ✨</p>
+<!-- ==================== 主应用 ==================== -->
+<div class="app" id="mainApp">
+    <div class="app-inner">
+
+        <!-- 顶部用户栏 -->
+        <div class="topbar">
+            <div class="current-user">
+                <span class="user-avatar" id="myAvatar"></span>
+                <span id="myName"></span>
+            </div>
+            <span style="font-size:12px;color:var(--text-secondary);" id="taskSummary"></span>
+            <div class="topbar-actions">
+                <button class="btn-sm" onclick="goToRegister()">＋ 添加用户</button>
+                <button class="btn-sm danger" onclick="switchUser()">🔄 切换账号</button>
+            </div>
+        </div>
+
+        <!-- 标题 -->
+        <header>
+            <h1>📋 TODO LIST</h1>
+            <p class="subtitle">多人共享 · 互相监督 · 优先级排序 · 日历视图</p>
+        </header>
+
+        <!-- 工具栏 -->
+        <div class="toolbar">
+            <button class="btn active" id="btnListView" onclick="switchView('list')">
+                <span class="icon">📋</span> 列表
+            </button>
+            <button class="btn" id="btnCalendarView" onclick="switchView('calendar')">
+                <span class="icon">📅</span> 日历
+            </button>
+            <button class="btn" id="btnClearDone" onclick="clearCompleted()" style="margin-left:auto;">
+                <span class="icon">🧹</span> 清除已完成
+            </button>
+        </div>
+
+        <!-- 用户筛选 -->
+        <div class="user-filter-chips" id="filterChips"></div>
+
+        <!-- 添加表单 -->
+        <div class="add-form" id="addForm">
+            <div class="row">
+                <input type="text" id="inputTitle" placeholder="📝 待办标题（必填）" maxlength="100" autocomplete="off">
+                <textarea id="inputDesc" placeholder="💬 描述（选填）" rows="1" maxlength="200"></textarea>
+                <input type="datetime-local" id="inputDeadline">
+                <button class="btn-add" onclick="addTask()">＋ 添加</button>
+            </div>
+        </div>
+
+        <!-- 列表视图 -->
+        <div class="task-list-view" id="listView">
+            <div class="task-list" id="taskList"></div>
+            <div class="empty-state" id="emptyState">
+                <div class="icon">📭</div>
+                <p>还没有待办事项<br>在上方添加一个吧 ✨</p>
+            </div>
+        </div>
+
+        <!-- 日历视图 -->
+        <div class="calendar-view" id="calendarView">
+            <div class="calendar-header">
+                <button class="nav-btn" onclick="navigateMonth(-1)">◀</button>
+                <span class="month-label" id="monthLabel"></span>
+                <button class="nav-btn" onclick="navigateMonth(1)">▶</button>
+            </div>
+            <div class="calendar-grid" id="calendarGrid"></div>
+        </div>
+
+        <!-- 日历日详情 -->
+        <div class="day-detail" id="dayDetail" onclick="closeDayDetail(event)">
+            <div class="panel" onclick="event.stopPropagation()">
+                <h4 id="dayDetailTitle"></h4>
+                <div id="dayDetailContent"></div>
+                <button class="btn-close" onclick="closeDayDetail()">关闭</button>
+            </div>
         </div>
     </div>
+</div>
 
-    <!-- 日历视图 -->
-    <div class="calendar-view" id="calendarView">
-        <div class="calendar-header">
-            <button class="nav-btn" onclick="navigateMonth(-1)">◀</button>
-            <span class="month-label" id="monthLabel"></span>
-            <button class="nav-btn" onclick="navigateMonth(1)">▶</button>
-        </div>
-        <div class="calendar-grid" id="calendarGrid"></div>
-    </div>
-
-    <!-- 日历日详情弹窗 -->
-    <div class="day-detail" id="dayDetail" onclick="closeDayDetail(event)">
-        <div class="panel" onclick="event.stopPropagation()">
-            <h4 id="dayDetailTitle"></h4>
-            <div id="dayDetailContent"></div>
-            <button class="btn-close" onclick="closeDayDetail()">关闭</button>
+<!-- ==================== 密码验证弹窗 ==================== -->
+<div class="modal-overlay" id="verifyModal">
+    <div class="modal-box">
+        <h4>🔐 权限验证</h4>
+        <p class="modal-sub" id="verifyMsg"></p>
+        <input type="password" id="verifyPwd" placeholder="请输入该用户的密码" maxlength="30">
+        <div class="modal-err" id="verifyErr"></div>
+        <div class="modal-btns">
+            <button onclick="closeVerifyModal()">取消</button>
+            <button class="btn-confirm" onclick="confirmVerify()">确认</button>
         </div>
     </div>
 </div>
 
 <script>
-// ==================== 数据管理 ====================
-const STORAGE_KEY = 'todo_list_data';
+// ==================== 工具函数 ====================
+function genId() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
 
-let tasks = [];
-let manualOrder = false;   // 手动排序后锁定
-let currentView = 'list';  // 'list' | 'calendar'
-let calendarYear, calendarMonth; // 当前显示的日历月份
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
 
-// 初始化：从 localStorage 读取
+function formatTime(isoStr) {
+    if (!isoStr) return '';
+    const d = new Date(isoStr);
+    const m = d.getMonth() + 1;
+    const day = d.getDate();
+    const h = String(d.getHours()).padStart(2, '0');
+    const min = String(d.getMinutes()).padStart(2, '0');
+    return `${m}/${day} ${h}:${min}`;
+}
+
+// 简单哈希（SHA-256）
+async function sha256(text) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(text);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// ==================== 用户管理 ====================
+const USERS_KEY = 'todo_users';
+const TASKS_KEY = 'todo_tasks';
+const CURRENT_USER_KEY = 'todo_current_user';
+
+let currentUser = null;  // 当前登录的用户名
+let allUsers = [];       // [{ username, passwordHash, createdAt }]
+let allTasks = [];       // [{ id, title, desc, deadline, completed, owner, createdAt, completedAt, sortOrder }]
+
+function loadUsers() {
+    try {
+        allUsers = JSON.parse(localStorage.getItem(USERS_KEY)) || [];
+    } catch (e) {
+        allUsers = [];
+    }
+}
+
+function saveUsers() {
+    localStorage.setItem(USERS_KEY, JSON.stringify(allUsers));
+}
+
 function loadTasks() {
     try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        tasks = raw ? JSON.parse(raw) : [];
+        allTasks = JSON.parse(localStorage.getItem(TASKS_KEY)) || [];
     } catch (e) {
-        tasks = [];
+        allTasks = [];
     }
 }
 
 function saveTasks() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    localStorage.setItem(TASKS_KEY, JSON.stringify(allTasks));
 }
 
-// 生成唯一 ID
-function genId() {
-    return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+// 检查是否是当前用户的任务
+function isMyTask(task) {
+    return task.owner === currentUser;
+}
+
+// ==================== 登录/注册逻辑 ====================
+let authMode = 'login'; // 'login' | 'register'
+
+function renderQuickUsers() {
+    const container = document.getElementById('quickUserList');
+    if (allUsers.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+    const colors = ['#0071e3','#ff9500','#34c759','#ff3b30','#8944d6','#0077b6','#e67e22','#2ecc71'];
+    container.innerHTML = allUsers.map((u, i) => {
+        const color = colors[i % colors.length];
+        const initial = u.username.charAt(0).toUpperCase();
+        return `
+        <button class="user-quick-chip" onclick="quickLogin('${escapeHtml(u.username)}')" title="点击登录">
+            <span class="avatar" style="background:${color};">${initial}</span>
+            ${escapeHtml(u.username)}
+        </button>`;
+    }).join('');
+}
+
+function quickLogin(username) {
+    document.getElementById('authUsername').value = username;
+    document.getElementById('authPassword').focus();
+}
+
+function toggleAuthMode() {
+    authMode = (authMode === 'login') ? 'register' : 'login';
+    document.getElementById('authTitle').textContent = (authMode === 'login') ? '欢迎回来' : '创建账号';
+    document.getElementById('authSub').textContent = (authMode === 'login') ? '请登录你的账号' : '首次使用，请注册';
+    document.getElementById('authBtn').textContent = (authMode === 'login') ? '登 录' : '注 册';
+    document.getElementById('switchText').textContent = (authMode === 'login') ? '还没有账号？' : '已有账号？';
+    document.getElementById('switchLink').textContent = (authMode === 'login') ? '注册新账号' : '去登录';
+    document.getElementById('confirmPwdField').style.display = (authMode === 'login') ? 'none' : 'block';
+    document.getElementById('authErr').textContent = '';
+    document.getElementById('authPassword').value = '';
+    document.getElementById('authConfirmPwd').value = '';
+}
+
+async function handleAuth() {
+    const username = document.getElementById('authUsername').value.trim();
+    const password = document.getElementById('authPassword').value;
+    const errEl = document.getElementById('authErr');
+
+    if (!username) { errEl.textContent = '请输入用户名'; return; }
+    if (username.length < 2) { errEl.textContent = '用户名至少2个字符'; return; }
+    if (!password) { errEl.textContent = '请输入密码'; return; }
+    if (password.length < 3) { errEl.textContent = '密码至少3位'; return; }
+
+    if (authMode === 'register') {
+        const confirmPwd = document.getElementById('authConfirmPwd').value;
+        if (password !== confirmPwd) { errEl.textContent = '两次密码不一致'; return; }
+        if (allUsers.find(u => u.username === username)) {
+            errEl.textContent = '该用户名已被使用'; return;
+        }
+        // 创建新用户
+        const hash = await sha256(password);
+        allUsers.push({ username, passwordHash: hash, createdAt: new Date().toISOString() });
+        saveUsers();
+        // 自动登录
+        loginUser(username);
+    } else {
+        // 登录
+        const user = allUsers.find(u => u.username === username);
+        if (!user) { errEl.textContent = '用户不存在，请先注册'; return; }
+        const hash = await sha256(password);
+        if (hash !== user.passwordHash) { errEl.textContent = '密码错误'; return; }
+        loginUser(username);
+    }
+}
+
+function loginUser(username) {
+    currentUser = username;
+    localStorage.setItem(CURRENT_USER_KEY, username);
+    showMainApp();
+}
+
+function logoutUser() {
+    currentUser = null;
+    localStorage.removeItem(CURRENT_USER_KEY);
+    document.getElementById('mainApp').classList.remove('active');
+    document.getElementById('authPage').classList.remove('hidden');
+    document.getElementById('authPassword').value = '';
+    document.getElementById('authConfirmPwd').value = '';
+    document.getElementById('authErr').textContent = '';
+    authMode = 'login';
+    toggleAuthMode(); // 切到登录
+    toggleAuthMode(); // 切回来
+    renderQuickUsers();
+}
+
+function goToRegister() {
+    logoutUser();
+    authMode = 'register';
+    toggleAuthMode();
+}
+
+function switchUser() {
+    logoutUser();
+}
+
+// ==================== 主应用显示 ====================
+function showMainApp() {
+    document.getElementById('authPage').classList.add('hidden');
+    document.getElementById('mainApp').classList.add('active');
+    document.getElementById('myName').textContent = currentUser;
+    document.getElementById('myAvatar').textContent = currentUser.charAt(0).toUpperCase();
+    document.getElementById('myAvatar').style.background = getUserColor(currentUser);
+    loadTasks();
+    resetAppState();
+    renderAll();
+    renderFilterChips();
+    document.getElementById('inputTitle').focus();
+}
+
+function getUserColor(username) {
+    const colors = ['#0071e3','#ff9500','#34c759','#ff3b30','#8944d6','#0077b6','#e67e22','#2ecc71'];
+    let hash = 0;
+    for (let i = 0; i < username.length; i++) hash = ((hash << 5) - hash) + username.charCodeAt(i);
+    return colors[Math.abs(hash) % colors.length];
+}
+
+// 重置应用状态
+let manualOrder = false;
+let currentView = 'list';
+let calendarYear, calendarMonth;
+let filterOwner = 'all'; // 'all' | username
+
+function resetAppState() {
+    manualOrder = false;
+    currentView = 'list';
+    filterOwner = 'all';
+    const now = new Date();
+    calendarYear = now.getFullYear();
+    calendarMonth = now.getMonth();
+    document.getElementById('listView').classList.remove('hidden');
+    document.getElementById('calendarView').classList.remove('active');
+    document.getElementById('addForm').classList.remove('hidden');
+    document.getElementById('btnListView').classList.add('active');
+    document.getElementById('btnCalendarView').classList.remove('active');
+}
+
+// ==================== 筛选逻辑 ====================
+function getFilteredTasks() {
+    if (filterOwner === 'all') return [...allTasks];
+    return allTasks.filter(t => t.owner === filterOwner);
+}
+
+function renderFilterChips() {
+    const owners = [...new Set(allTasks.map(t => t.owner))];
+    const container = document.getElementById('filterChips');
+    if (owners.length === 0) { container.innerHTML = ''; return; }
+
+    let html = `<button class="filter-chip ${filterOwner === 'all' ? 'active' : ''}" onclick="setFilter('all')">👥 全部</button>`;
+    owners.forEach(owner => {
+        const isMe = owner === currentUser;
+        html += `<button class="filter-chip ${filterOwner === owner ? 'active' : ''}" onclick="setFilter('${escapeHtml(owner)}')">${isMe ? '⭐ ' : ''}${escapeHtml(owner)}</button>`;
+    });
+    container.innerHTML = html;
+}
+
+function setFilter(owner) {
+    filterOwner = owner;
+    renderFilterChips();
+    renderAll();
+}
+
+// ==================== 排序逻辑 ====================
+function getSortedTasks() {
+    const filtered = getFilteredTasks();
+    if (manualOrder) {
+        return [...filtered].sort((a, b) => a.sortOrder - b.sortOrder);
+    }
+    const active = filtered.filter(t => !t.completed);
+    const done = filtered.filter(t => t.completed);
+    active.sort((a, b) => {
+        if (!a.deadline && !b.deadline) return 0;
+        if (!a.deadline) return 1;
+        if (!b.deadline) return -1;
+        return new Date(a.deadline) - new Date(b.deadline);
+    });
+    return [...active, ...done];
 }
 
 // ==================== 任务操作 ====================
@@ -550,14 +1129,16 @@ function addTask() {
         id: genId(),
         title: title,
         desc: descEl.value.trim(),
-        deadline: deadlineEl.value || null,  // "YYYY-MM-DDTHH:mm" 或 null
+        deadline: deadlineEl.value || null,
         completed: false,
+        owner: currentUser,
         createdAt: new Date().toISOString(),
-        sortOrder: Date.now(), // 手动排序用
+        completedAt: null,
+        sortOrder: Date.now(),
     };
 
-    tasks.push(task);
-    manualOrder = false; // 新增后恢复自动排序
+    allTasks.push(task);
+    manualOrder = false;
 
     titleEl.value = '';
     descEl.value = '';
@@ -565,54 +1146,165 @@ function addTask() {
     titleEl.focus();
 
     saveTasks();
+    renderFilterChips();
     renderAll();
 }
 
-function toggleTask(id) {
-    const task = tasks.find(t => t.id === id);
+// 需要验证才能操作他人任务
+const pendingAction = { type: null, taskId: null };
+
+function tryToggleTask(id) {
+    const task = allTasks.find(t => t.id === id);
+    if (!task) return;
+    if (isMyTask(task)) {
+        doToggleTask(id);
+    } else {
+        pendingAction.type = 'toggle';
+        pendingAction.taskId = id;
+        showVerifyModal(task);
+    }
+}
+
+function doToggleTask(id) {
+    const task = allTasks.find(t => t.id === id);
     if (task) {
         task.completed = !task.completed;
+        task.completedAt = task.completed ? new Date().toISOString() : null;
         saveTasks();
         renderAll();
     }
 }
 
-function deleteTask(id) {
+function tryDeleteTask(id) {
+    const task = allTasks.find(t => t.id === id);
+    if (!task) return;
+    if (isMyTask(task)) {
+        doDeleteTask(id);
+    } else {
+        pendingAction.type = 'delete';
+        pendingAction.taskId = id;
+        showVerifyModal(task);
+    }
+}
+
+function doDeleteTask(id) {
     if (!confirm('确定删除这条待办吗？')) return;
-    tasks = tasks.filter(t => t.id !== id);
+    allTasks = allTasks.filter(t => t.id !== id);
     saveTasks();
+    renderFilterChips();
     renderAll();
 }
 
 function clearCompleted() {
-    const doneCount = tasks.filter(t => t.completed).length;
-    if (doneCount === 0) { alert('没有已完成的任务'); return; }
-    if (!confirm(`确定删除 ${doneCount} 条已完成的任务吗？`)) return;
-    tasks = tasks.filter(t => !t.completed);
+    const myDone = allTasks.filter(t => t.completed && isMyTask(t));
+    const otherDone = allTasks.filter(t => t.completed && !isMyTask(t));
+    const total = myDone.length + otherDone.length;
+    if (total === 0) { alert('没有已完成的任务'); return; }
+
+    let msg = `共 ${total} 条已完成任务。\n`;
+    if (myDone.length > 0) msg += `\n✅ 你的 ${myDone.length} 条将被直接删除。`;
+    if (otherDone.length > 0) msg += `\n🔒 他人的 ${otherDone.length} 条需要逐个验证密码。`;
+    if (!confirm(msg)) return;
+
+    // 删除自己的
+    allTasks = allTasks.filter(t => !(t.completed && isMyTask(t)));
     saveTasks();
-    renderAll();
-}
 
-// ==================== 排序逻辑 ====================
-function getSortedTasks() {
-    if (manualOrder) {
-        return [...tasks].sort((a, b) => a.sortOrder - b.sortOrder);
+    // 删除他人的需要一个一个验证
+    if (otherDone.length > 0) {
+        deleteOtherTasksOneByOne([...otherDone]);
+    } else {
+        renderFilterChips();
+        renderAll();
     }
-    // 自动排序：未完成的在前，按截止时间升序（近的在前），无截止时间的在后
-    const active = tasks.filter(t => !t.completed);
-    const done = tasks.filter(t => t.completed);
-
-    active.sort((a, b) => {
-        if (!a.deadline && !b.deadline) return 0;
-        if (!a.deadline) return 1;   // a 无截止时间，排后面
-        if (!b.deadline) return -1;  // b 无截止时间，a 排前面
-        return new Date(a.deadline) - new Date(b.deadline);
-    });
-
-    return [...active, ...done];
 }
 
-// ==================== 紧急程度判断 ====================
+async function deleteOtherTasksOneByOne(queue) {
+    if (queue.length === 0) {
+        saveTasks();
+        renderFilterChips();
+        renderAll();
+        return;
+    }
+    const task = queue[0];
+    pendingAction.type = 'delete';
+    pendingAction.taskId = task.id;
+    pendingAction.deleteQueue = queue;
+
+    showVerifyModal(task);
+}
+
+// 拖拽排序
+function tryDragDrop(draggedId) {
+    const task = allTasks.find(t => t.id === draggedId);
+    if (!task) return;
+    if (isMyTask(task)) return true;
+    // 他人任务需要验证
+    pendingAction.type = 'drag';
+    pendingAction.taskId = draggedId;
+    showVerifyModal(task);
+    return false;
+}
+
+// ==================== 密码验证弹窗 ====================
+function showVerifyModal(task) {
+    document.getElementById('verifyMsg').textContent =
+        `「${task.owner}」的任务需要验证其密码才能操作`;
+    document.getElementById('verifyPwd').value = '';
+    document.getElementById('verifyErr').textContent = '';
+    document.getElementById('verifyModal').classList.add('active');
+    setTimeout(() => document.getElementById('verifyPwd').focus(), 100);
+}
+
+function closeVerifyModal() {
+    document.getElementById('verifyModal').classList.remove('active');
+    pendingAction.type = null;
+    pendingAction.taskId = null;
+    pendingAction.deleteQueue = null;
+}
+
+async function confirmVerify() {
+    const pwd = document.getElementById('verifyPwd').value;
+    const task = allTasks.find(t => t.id === pendingAction.taskId);
+    if (!task) { closeVerifyModal(); return; }
+
+    const user = allUsers.find(u => u.username === task.owner);
+    if (!user) { closeVerifyModal(); return; }
+
+    const hash = await sha256(pwd);
+    if (hash !== user.passwordHash) {
+        document.getElementById('verifyErr').textContent = '密码错误，请重试';
+        return;
+    }
+
+    // 验证成功，执行pending操作
+    const action = pendingAction.type;
+    const taskId = pendingAction.taskId;
+    const queue = pendingAction.deleteQueue;
+    closeVerifyModal();
+
+    if (action === 'toggle') {
+        doToggleTask(taskId);
+    } else if (action === 'delete') {
+        if (!confirm('密码验证通过！确定删除这条待办吗？')) return;
+        allTasks = allTasks.filter(t => t.id !== taskId);
+        saveTasks();
+        renderFilterChips();
+        renderAll();
+        // 继续队列中的其它删除
+        if (queue) {
+            const remaining = queue.filter(t => t.id !== taskId);
+            if (remaining.length > 0) deleteOtherTasksOneByOne(remaining);
+        }
+    } else if (action === 'drag') {
+        // 拖拽场景：已经验证通过，允许本次拖拽
+        // 设置一个临时标记，让drop操作可以执行
+        window._dragVerified = true;
+        setTimeout(() => { window._dragVerified = false; }, 5000);
+    }
+}
+
+// ==================== 紧急程度 ====================
 function getUrgency(deadline, completed) {
     if (completed) return 'done';
     if (!deadline) return 'normal';
@@ -620,10 +1312,9 @@ function getUrgency(deadline, completed) {
     const dl = new Date(deadline);
     const diffMs = dl - now;
     const diffDays = diffMs / (1000 * 60 * 60 * 24);
-
-    if (diffMs < 0) return 'overdue';       // 已过期
-    if (diffDays < 1) return 'today';       // 今天
-    if (diffDays < 3) return 'soon';        // 3天内
+    if (diffMs < 0) return 'overdue';
+    if (diffDays < 1) return 'today';
+    if (diffDays < 3) return 'soon';
     return 'normal';
 }
 
@@ -635,8 +1326,7 @@ function formatDeadline(deadline) {
     const hour = String(d.getHours()).padStart(2, '0');
     const min = String(d.getMinutes()).padStart(2, '0');
     const weekdays = ['周日','周一','周二','周三','周四','周五','周六'];
-    const wd = weekdays[d.getDay()];
-    return `${month}月${day}日 ${wd} ${hour}:${min}`;
+    return `${month}月${day}日 ${weekdays[d.getDay()]} ${hour}:${min}`;
 }
 
 function getRemaining(deadline) {
@@ -644,7 +1334,6 @@ function getRemaining(deadline) {
     const now = new Date();
     const dl = new Date(deadline);
     const diffMs = dl - now;
-
     if (diffMs < 0) {
         const abs = Math.abs(diffMs);
         const days = Math.floor(abs / (1000 * 60 * 60 * 24));
@@ -653,11 +1342,9 @@ function getRemaining(deadline) {
         if (hours > 1) return `已过期 ${hours} 小时`;
         return '刚刚过期';
     }
-
     const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
     const hours = Math.floor(diffMs / (1000 * 60 * 60));
     const mins = Math.floor(diffMs / (1000 * 60));
-
     if (days > 1) return `剩余 ${days} 天`;
     if (hours > 1) return `剩余 ${hours} 小时`;
     if (mins > 1) return `剩余 ${mins} 分钟`;
@@ -669,6 +1356,13 @@ function renderList() {
     const container = document.getElementById('taskList');
     const emptyState = document.getElementById('emptyState');
     const sorted = getSortedTasks();
+
+    // 更新统计
+    const myTotal = allTasks.filter(t => t.owner === currentUser).length;
+    const myDone = allTasks.filter(t => t.owner === currentUser && t.completed).length;
+    const allTotal = allTasks.length;
+    document.getElementById('taskSummary').textContent =
+        `我的：${myDone}/${myTotal} 完成 | 总计：${allTotal} 条`;
 
     if (sorted.length === 0) {
         container.innerHTML = '';
@@ -682,9 +1376,17 @@ function renderList() {
         const deadlineText = task.deadline ? formatDeadline(task.deadline) : '';
         const remaining = task.deadline && !task.completed ? getRemaining(task.deadline) : '';
         const descHtml = task.desc ? `<div class="task-desc">${escapeHtml(task.desc)}</div>` : '';
+        const isMine = isMyTask(task);
+        const ownerClass = isMine ? 'me' : 'other';
+        const ownerLabel = isMine ? '我' : escapeHtml(task.owner);
+        const lockedHtml = isMine ? '' : '<span class="lock-icon" title="需密码验证">🔒</span>';
+
+        // 时间信息
+        const createdTime = formatTime(task.createdAt);
+        const completedTime = task.completed && task.completedAt ? ` · ✅ ${formatTime(task.completedAt)}` : '';
 
         return `
-        <div class="task-item urgency-${urgency} ${task.completed ? 'completed' : ''}"
+        <div class="task-item urgency-${urgency} ${task.completed ? 'completed' : ''} ${!isMine ? 'other-user' : ''}"
              draggable="true"
              data-id="${task.id}"
              ondragstart="onDragStart(event)"
@@ -693,17 +1395,23 @@ function renderList() {
              ondragleave="onDragLeave(event)"
              ondrop="onDrop(event)">
             <span class="drag-handle" title="拖拽排序">⋮⋮</span>
-            <span class="checkbox ${task.completed ? 'done' : ''}" onclick="toggleTask('${task.id}')" title="切换完成状态"></span>
+            ${lockedHtml}
+            <span class="checkbox ${task.completed ? 'done' : ''}" onclick="tryToggleTask('${task.id}')" title="${isMine ? '切换完成状态' : '需密码验证'}"></span>
             <div class="task-body">
                 <div class="task-title">${escapeHtml(task.title)}</div>
                 ${descHtml}
+                <div class="task-meta">
+                    <span class="owner-badge ${ownerClass}">${ownerLabel}</span>
+                    <span class="time-info" title="创建时间">📅 ${createdTime}</span>
+                    ${completedTime ? `<span class="time-info">${completedTime}</span>` : ''}
+                </div>
             </div>
             ${deadlineText ? `
             <span class="deadline-badge ${urgency === 'overdue' ? 'overdue' : urgency === 'today' ? 'today' : urgency === 'soon' ? 'soon' : 'normal'}"
                   title="${remaining}">
                 ⏰ ${deadlineText}
             </span>` : ''}
-            <button class="btn-delete" onclick="deleteTask('${task.id}')" title="删除">×</button>
+            <button class="btn-delete" onclick="tryDeleteTask('${task.id}')" title="${isMine ? '删除' : '需密码验证'}">×</button>
         </div>`;
     }).join('');
 }
@@ -712,17 +1420,24 @@ function renderList() {
 let draggedId = null;
 
 function onDragStart(e) {
-    draggedId = e.currentTarget.dataset.id;
+    const id = e.currentTarget.dataset.id;
+    const task = allTasks.find(t => t.id === id);
+    if (!task) return;
+    if (!isMyTask(task)) {
+        // 拖拽他人任务，需要验证
+        e.preventDefault();
+        tryDragDrop(id);
+        return false;
+    }
+    draggedId = id;
     e.currentTarget.classList.add('dragging');
     e.dataTransfer.effectAllowed = 'move';
-    // 移动端拖拽兼容
-    e.dataTransfer.setData('text/plain', draggedId);
+    e.dataTransfer.setData('text/plain', id);
 }
 
 function onDragEnd(e) {
     e.currentTarget.classList.remove('dragging');
     draggedId = null;
-    // 清除所有 drag-over 样式
     document.querySelectorAll('.task-item.drag-over').forEach(el => el.classList.remove('drag-over'));
 }
 
@@ -746,67 +1461,57 @@ function onDrop(e) {
     const targetId = e.currentTarget.dataset.id;
     if (!targetId || targetId === draggedId) return;
 
+    // 检查目标是否为自己的任务
+    const targetTask = allTasks.find(t => t.id === targetId);
+    if (targetTask && !isMyTask(targetTask) && !window._dragVerified) {
+        tryDragDrop(targetId);
+        draggedId = null;
+        return;
+    }
+
     const sorted = getSortedTasks();
-    const draggedTask = tasks.find(t => t.id === draggedId);
+    const draggedTask = allTasks.find(t => t.id === draggedId);
     const targetIndex = sorted.findIndex(t => t.id === targetId);
     const draggedIndex = sorted.findIndex(t => t.id === draggedId);
 
     if (draggedTask && targetIndex !== -1) {
-        // 将拖拽的任务插入到目标位置
         const newSorted = [...sorted];
         newSorted.splice(draggedIndex, 1);
         newSorted.splice(targetIndex, 0, draggedTask);
-
-        // 更新所有任务的 sortOrder
         manualOrder = true;
         newSorted.forEach((t, i) => { t.sortOrder = i; });
         saveTasks();
+        window._dragVerified = false;
         renderAll();
     }
-}
-
-// HTML 转义
-function escapeHtml(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
 }
 
 // ==================== 日历渲染 ====================
 function renderCalendar() {
     const year = calendarYear;
     const month = calendarMonth;
-
-    // 更新标题
     document.getElementById('monthLabel').textContent = `${year}年 ${month + 1}月`;
 
     const grid = document.getElementById('calendarGrid');
-
-    // 星期头
     const weekHeaders = ['日','一','二','三','四','五','六'];
     let html = weekHeaders.map(d => `<div class="day-header">${d}</div>`).join('');
 
-    // 当月第一天和最后一天
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
-    const startDayOfWeek = firstDay.getDay(); // 0=周日
+    const startDayOfWeek = firstDay.getDay();
     const daysInMonth = lastDay.getDate();
 
-    // 上月填充
     const prevLastDay = new Date(year, month, 0).getDate();
     for (let i = startDayOfWeek - 1; i >= 0; i--) {
-        const day = prevLastDay - i;
-        html += buildDayCell(year, month - 1, day, true);
+        html += buildDayCell(year, month - 1, prevLastDay - i, true);
     }
 
-    // 当月日期
     const today = new Date();
     for (let day = 1; day <= daysInMonth; day++) {
         const isToday = (year === today.getFullYear() && month === today.getMonth() && day === today.getDate());
         html += buildDayCell(year, month, day, false, isToday);
     }
 
-    // 下月填充（补齐到 6 行 x 7 列 = 42 格）
     const totalCells = startDayOfWeek + daysInMonth;
     const remaining = totalCells <= 35 ? 35 - totalCells : 42 - totalCells;
     for (let day = 1; day <= remaining; day++) {
@@ -818,7 +1523,8 @@ function renderCalendar() {
 
 function buildDayCell(year, month, day, otherMonth, isToday) {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    const cellTasks = tasks.filter(t => {
+    const filteredTasks = getFilteredTasks();
+    const cellTasks = filteredTasks.filter(t => {
         if (!t.deadline) return false;
         const d = new Date(t.deadline);
         return d.getFullYear() === year && d.getMonth() === month && d.getDate() === day;
@@ -842,7 +1548,8 @@ function buildDayCell(year, month, day, otherMonth, isToday) {
 
 function openDayDetail(dateStr) {
     const [y, m, d] = dateStr.split('-').map(Number);
-    const cellTasks = tasks.filter(t => {
+    const filteredTasks = getFilteredTasks();
+    const cellTasks = filteredTasks.filter(t => {
         if (!t.deadline) return false;
         const dl = new Date(t.deadline);
         return dl.getFullYear() === parseInt(y) && dl.getMonth() === parseInt(m - 1) && dl.getDate() === parseInt(d);
@@ -858,7 +1565,7 @@ function openDayDetail(dateStr) {
             <div class="mini-task">
                 <div class="mini-title">${t.completed ? '✅ ' : ''}${escapeHtml(t.title)}</div>
                 ${t.desc ? `<div class="mini-desc">${escapeHtml(t.desc)}</div>` : ''}
-                ${t.deadline ? `<div style="font-size:11px;color:#999;margin-top:2px;">⏰ ${formatDeadline(t.deadline)}</div>` : ''}
+                <div class="mini-owner">👤 ${escapeHtml(t.owner)}</div>
             </div>
         `).join('');
     }
@@ -893,7 +1600,6 @@ function switchView(view) {
         addForm.classList.add('hidden');
         btnList.classList.remove('active');
         btnCal.classList.add('active');
-        // 定位到今天
         const now = new Date();
         calendarYear = now.getFullYear();
         calendarMonth = now.getMonth();
@@ -921,24 +1627,48 @@ function renderAll() {
 document.addEventListener('keydown', function(e) {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault();
-        addTask();
+        if (document.getElementById('mainApp').classList.contains('active')) addTask();
     }
-    // ESC 关闭弹窗
     if (e.key === 'Escape') {
         document.getElementById('dayDetail').classList.remove('active');
+        closeVerifyModal();
     }
 });
 
+// 登录页回车登录
+document.getElementById('authPassword').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') handleAuth();
+});
+document.getElementById('authConfirmPwd').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') handleAuth();
+});
+document.getElementById('verifyPwd').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') confirmVerify();
+});
+
 // ==================== 启动 ====================
-function init() {
+async function init() {
+    loadUsers();
     loadTasks();
-    // 初始化 sortOrder（兼容旧数据）
-    tasks.forEach((t, i) => { if (t.sortOrder === undefined) t.sortOrder = Date.now(); });
-    saveTasks();
-    const now = new Date();
-    calendarYear = now.getFullYear();
-    calendarMonth = now.getMonth();
-    renderAll();
+
+    // 检查是否有已登录的用户
+    const savedUser = localStorage.getItem(CURRENT_USER_KEY);
+    if (savedUser && allUsers.find(u => u.username === savedUser)) {
+        currentUser = savedUser;
+        showMainApp();
+    } else {
+        // 显示登录页
+        document.getElementById('authPage').classList.remove('hidden');
+        document.getElementById('mainApp').classList.remove('active');
+        renderQuickUsers();
+        // 如果没有任何用户，默认展示注册页
+        if (allUsers.length === 0) {
+            authMode = 'login';
+            toggleAuthMode(); // 切到注册
+            document.getElementById('authTitle').textContent = '创建首个账号';
+            document.getElementById('authSub').textContent = '欢迎使用多人待办清单';
+        }
+    }
 }
 
 init();
