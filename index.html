@@ -865,10 +865,6 @@ header .subtitle { color: var(--text-secondary); font-size: 13px; margin-top: 2p
 
 <script>
 // ==================== 工具函数 ====================
-function genId() {
-    return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-}
-
 function escapeHtml(str) {
     const div = document.createElement('div');
     div.textContent = str;
@@ -885,62 +881,43 @@ function formatTime(isoStr) {
     return `${m}/${day} ${h}:${min}`;
 }
 
-// 简单哈希（SHA-256）
-async function sha256(text) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(text);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+// API 请求封装
+async function api(path, options = {}) {
+    const res = await fetch(path, {
+        headers: { 'Content-Type': 'application/json' },
+        ...options,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || '请求失败');
+    return data;
 }
 
-// ==================== 用户管理 ====================
-const USERS_KEY = 'todo_users';
-const TASKS_KEY = 'todo_tasks';
+// ==================== 全局状态 ====================
 const CURRENT_USER_KEY = 'todo_current_user';
 
-let currentUser = null;  // 当前登录的用户名
-let allUsers = [];       // [{ username, passwordHash, createdAt }]
-let allTasks = [];       // [{ id, title, desc, deadline, completed, owner, createdAt, completedAt, sortOrder }]
+let currentUser = null;
+let allUsers = [];
+let allTasks = [];
 
-function loadUsers() {
-    try {
-        allUsers = JSON.parse(localStorage.getItem(USERS_KEY)) || [];
-    } catch (e) {
-        allUsers = [];
-    }
-}
-
-function saveUsers() {
-    localStorage.setItem(USERS_KEY, JSON.stringify(allUsers));
-}
-
-function loadTasks() {
-    try {
-        allTasks = JSON.parse(localStorage.getItem(TASKS_KEY)) || [];
-    } catch (e) {
-        allTasks = [];
-    }
-}
-
-function saveTasks() {
-    localStorage.setItem(TASKS_KEY, JSON.stringify(allTasks));
-}
-
-// 检查是否是当前用户的任务
 function isMyTask(task) {
     return task.owner === currentUser;
 }
 
-// ==================== 登录/注册逻辑 ====================
-let authMode = 'login'; // 'login' | 'register'
+// 从服务器加载数据
+async function loadUsers() {
+    try { allUsers = await api('/api/users'); } catch (e) { allUsers = []; }
+}
+
+async function loadTasks() {
+    try { allTasks = await api('/api/tasks'); } catch (e) { allTasks = []; }
+}
+
+// ==================== 登录/注册 ====================
+let authMode = 'login';
 
 function renderQuickUsers() {
     const container = document.getElementById('quickUserList');
-    if (allUsers.length === 0) {
-        container.innerHTML = '';
-        return;
-    }
+    if (allUsers.length === 0) { container.innerHTML = ''; return; }
     const colors = ['#0071e3','#ff9500','#34c759','#ff3b30','#8944d6','#0077b6','#e67e22','#2ecc71'];
     container.innerHTML = allUsers.map((u, i) => {
         const color = colors[i % colors.length];
@@ -981,25 +958,30 @@ async function handleAuth() {
     if (!password) { errEl.textContent = '请输入密码'; return; }
     if (password.length < 3) { errEl.textContent = '密码至少3位'; return; }
 
-    if (authMode === 'register') {
-        const confirmPwd = document.getElementById('authConfirmPwd').value;
-        if (password !== confirmPwd) { errEl.textContent = '两次密码不一致'; return; }
-        if (allUsers.find(u => u.username === username)) {
-            errEl.textContent = '该用户名已被使用'; return;
+    const btn = document.getElementById('authBtn');
+    btn.disabled = true; btn.textContent = '处理中...';
+
+    try {
+        if (authMode === 'register') {
+            const confirmPwd = document.getElementById('authConfirmPwd').value;
+            if (password !== confirmPwd) { errEl.textContent = '两次密码不一致'; return; }
+            await api('/api/register', {
+                method: 'POST',
+                body: JSON.stringify({ username, password }),
+            });
+            loginUser(username);
+        } else {
+            await api('/api/login', {
+                method: 'POST',
+                body: JSON.stringify({ username, password }),
+            });
+            loginUser(username);
         }
-        // 创建新用户
-        const hash = await sha256(password);
-        allUsers.push({ username, passwordHash: hash, createdAt: new Date().toISOString() });
-        saveUsers();
-        // 自动登录
-        loginUser(username);
-    } else {
-        // 登录
-        const user = allUsers.find(u => u.username === username);
-        if (!user) { errEl.textContent = '用户不存在，请先注册'; return; }
-        const hash = await sha256(password);
-        if (hash !== user.passwordHash) { errEl.textContent = '密码错误'; return; }
-        loginUser(username);
+    } catch (e) {
+        errEl.textContent = e.message;
+    } finally {
+        btn.disabled = false;
+        btn.textContent = (authMode === 'login') ? '登 录' : '注 册';
     }
 }
 
@@ -1018,29 +1000,22 @@ function logoutUser() {
     document.getElementById('authConfirmPwd').value = '';
     document.getElementById('authErr').textContent = '';
     authMode = 'login';
-    toggleAuthMode(); // 切到登录
-    toggleAuthMode(); // 切回来
-    renderQuickUsers();
+    toggleAuthMode(); toggleAuthMode();
+    loadUsers().then(() => renderQuickUsers());
 }
 
-function goToRegister() {
-    logoutUser();
-    authMode = 'register';
-    toggleAuthMode();
-}
+function goToRegister() { logoutUser(); authMode = 'register'; toggleAuthMode(); }
+function switchUser() { logoutUser(); }
 
-function switchUser() {
-    logoutUser();
-}
-
-// ==================== 主应用显示 ====================
-function showMainApp() {
+// ==================== 主应用 ====================
+async function showMainApp() {
     document.getElementById('authPage').classList.add('hidden');
     document.getElementById('mainApp').classList.add('active');
     document.getElementById('myName').textContent = currentUser;
     document.getElementById('myAvatar').textContent = currentUser.charAt(0).toUpperCase();
     document.getElementById('myAvatar').style.background = getUserColor(currentUser);
-    loadTasks();
+    await loadUsers();
+    await loadTasks();
     resetAppState();
     renderAll();
     renderFilterChips();
@@ -1054,11 +1029,10 @@ function getUserColor(username) {
     return colors[Math.abs(hash) % colors.length];
 }
 
-// 重置应用状态
 let manualOrder = false;
 let currentView = 'list';
 let calendarYear, calendarMonth;
-let filterOwner = 'all'; // 'all' | username
+let filterOwner = 'all';
 
 function resetAppState() {
     manualOrder = false;
@@ -1074,7 +1048,7 @@ function resetAppState() {
     document.getElementById('btnCalendarView').classList.remove('active');
 }
 
-// ==================== 筛选逻辑 ====================
+// ==================== 筛选 ====================
 function getFilteredTasks() {
     if (filterOwner === 'all') return [...allTasks];
     return allTasks.filter(t => t.owner === filterOwner);
@@ -1084,7 +1058,6 @@ function renderFilterChips() {
     const owners = [...new Set(allTasks.map(t => t.owner))];
     const container = document.getElementById('filterChips');
     if (owners.length === 0) { container.innerHTML = ''; return; }
-
     let html = `<button class="filter-chip ${filterOwner === 'all' ? 'active' : ''}" onclick="setFilter('all')">👥 全部</button>`;
     owners.forEach(owner => {
         const isMe = owner === currentUser;
@@ -1093,18 +1066,12 @@ function renderFilterChips() {
     container.innerHTML = html;
 }
 
-function setFilter(owner) {
-    filterOwner = owner;
-    renderFilterChips();
-    renderAll();
-}
+function setFilter(owner) { filterOwner = owner; renderFilterChips(); renderAll(); }
 
-// ==================== 排序逻辑 ====================
+// ==================== 排序 ====================
 function getSortedTasks() {
     const filtered = getFilteredTasks();
-    if (manualOrder) {
-        return [...filtered].sort((a, b) => a.sortOrder - b.sortOrder);
-    }
+    if (manualOrder) return [...filtered].sort((a, b) => a.sortOrder - b.sortOrder);
     const active = filtered.filter(t => !t.completed);
     const done = filtered.filter(t => t.completed);
     active.sort((a, b) => {
@@ -1116,8 +1083,8 @@ function getSortedTasks() {
     return [...active, ...done];
 }
 
-// ==================== 任务操作 ====================
-function addTask() {
+// ==================== 任务操作（API） ====================
+async function addTask() {
     const titleEl = document.getElementById('inputTitle');
     const descEl = document.getElementById('inputDesc');
     const deadlineEl = document.getElementById('inputDeadline');
@@ -1125,77 +1092,70 @@ function addTask() {
     const title = titleEl.value.trim();
     if (!title) { titleEl.focus(); return; }
 
-    const task = {
-        id: genId(),
-        title: title,
+    const body = {
+        title,
         desc: descEl.value.trim(),
         deadline: deadlineEl.value || null,
-        completed: false,
         owner: currentUser,
-        createdAt: new Date().toISOString(),
-        completedAt: null,
-        sortOrder: Date.now(),
     };
 
-    allTasks.push(task);
-    manualOrder = false;
-
-    titleEl.value = '';
-    descEl.value = '';
-    deadlineEl.value = '';
-    titleEl.focus();
-
-    saveTasks();
-    renderFilterChips();
-    renderAll();
+    try {
+        await api('/api/tasks', { method: 'POST', body: JSON.stringify(body) });
+        titleEl.value = '';
+        descEl.value = '';
+        deadlineEl.value = '';
+        titleEl.focus();
+        manualOrder = false;
+        await loadTasks();
+        renderFilterChips();
+        renderAll();
+    } catch (e) {
+        alert('添加失败：' + e.message);
+    }
 }
 
-// 需要验证才能操作他人任务
 const pendingAction = { type: null, taskId: null };
 
 function tryToggleTask(id) {
     const task = allTasks.find(t => t.id === id);
     if (!task) return;
-    if (isMyTask(task)) {
-        doToggleTask(id);
-    } else {
-        pendingAction.type = 'toggle';
-        pendingAction.taskId = id;
-        showVerifyModal(task);
-    }
+    if (isMyTask(task)) { doToggleTask(id); }
+    else { pendingAction.type = 'toggle'; pendingAction.taskId = id; showVerifyModal(task); }
 }
 
-function doToggleTask(id) {
+async function doToggleTask(id) {
     const task = allTasks.find(t => t.id === id);
-    if (task) {
-        task.completed = !task.completed;
-        task.completedAt = task.completed ? new Date().toISOString() : null;
-        saveTasks();
+    if (!task) return;
+    const completed = !task.completed;
+    const completedAt = completed ? new Date().toISOString() : null;
+    try {
+        await api(`/api/tasks/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify({ completed, completedAt }),
+        });
+        await loadTasks();
         renderAll();
-    }
+    } catch (e) { alert('操作失败：' + e.message); }
 }
 
 function tryDeleteTask(id) {
     const task = allTasks.find(t => t.id === id);
     if (!task) return;
-    if (isMyTask(task)) {
-        doDeleteTask(id);
-    } else {
-        pendingAction.type = 'delete';
-        pendingAction.taskId = id;
-        showVerifyModal(task);
-    }
+    if (isMyTask(task)) { doDeleteTask(id); }
+    else { pendingAction.type = 'delete'; pendingAction.taskId = id; showVerifyModal(task); }
 }
 
-function doDeleteTask(id) {
+async function doDeleteTask(id) {
     if (!confirm('确定删除这条待办吗？')) return;
-    allTasks = allTasks.filter(t => t.id !== id);
-    saveTasks();
-    renderFilterChips();
-    renderAll();
+    try {
+        await api(`/api/tasks/${id}`, { method: 'DELETE' });
+        await loadTasks();
+        renderFilterChips();
+        renderAll();
+    } catch (e) { alert('删除失败：' + e.message); }
 }
 
-function clearCompleted() {
+async function clearCompleted() {
     const myDone = allTasks.filter(t => t.completed && isMyTask(t));
     const otherDone = allTasks.filter(t => t.completed && !isMyTask(t));
     const total = myDone.length + otherDone.length;
@@ -1207,10 +1167,11 @@ function clearCompleted() {
     if (!confirm(msg)) return;
 
     // 删除自己的
-    allTasks = allTasks.filter(t => !(t.completed && isMyTask(t)));
-    saveTasks();
+    for (const t of myDone) {
+        await api(`/api/tasks/${t.id}`, { method: 'DELETE' });
+    }
+    await loadTasks();
 
-    // 删除他人的需要一个一个验证
     if (otherDone.length > 0) {
         deleteOtherTasksOneByOne([...otherDone]);
     } else {
@@ -1221,7 +1182,7 @@ function clearCompleted() {
 
 async function deleteOtherTasksOneByOne(queue) {
     if (queue.length === 0) {
-        saveTasks();
+        await loadTasks();
         renderFilterChips();
         renderAll();
         return;
@@ -1230,16 +1191,13 @@ async function deleteOtherTasksOneByOne(queue) {
     pendingAction.type = 'delete';
     pendingAction.taskId = task.id;
     pendingAction.deleteQueue = queue;
-
     showVerifyModal(task);
 }
 
-// 拖拽排序
 function tryDragDrop(draggedId) {
     const task = allTasks.find(t => t.id === draggedId);
     if (!task) return;
     if (isMyTask(task)) return true;
-    // 他人任务需要验证
     pendingAction.type = 'drag';
     pendingAction.taskId = draggedId;
     showVerifyModal(task);
@@ -1248,8 +1206,7 @@ function tryDragDrop(draggedId) {
 
 // ==================== 密码验证弹窗 ====================
 function showVerifyModal(task) {
-    document.getElementById('verifyMsg').textContent =
-        `「${task.owner}」的任务需要验证其密码才能操作`;
+    document.getElementById('verifyMsg').textContent = `「${task.owner}」的任务需要验证其密码才能操作`;
     document.getElementById('verifyPwd').value = '';
     document.getElementById('verifyErr').textContent = '';
     document.getElementById('verifyModal').classList.add('active');
@@ -1258,9 +1215,7 @@ function showVerifyModal(task) {
 
 function closeVerifyModal() {
     document.getElementById('verifyModal').classList.remove('active');
-    pendingAction.type = null;
-    pendingAction.taskId = null;
-    pendingAction.deleteQueue = null;
+    pendingAction.type = null; pendingAction.taskId = null; pendingAction.deleteQueue = null;
 }
 
 async function confirmVerify() {
@@ -1268,37 +1223,38 @@ async function confirmVerify() {
     const task = allTasks.find(t => t.id === pendingAction.taskId);
     if (!task) { closeVerifyModal(); return; }
 
-    const user = allUsers.find(u => u.username === task.owner);
-    if (!user) { closeVerifyModal(); return; }
+    const btn = document.querySelector('#verifyModal .btn-confirm');
+    btn.disabled = true;
 
-    const hash = await sha256(pwd);
-    if (hash !== user.passwordHash) {
+    try {
+        await api('/api/verify-password', {
+            method: 'POST',
+            body: JSON.stringify({ username: task.owner, password: pwd }),
+        });
+    } catch (e) {
         document.getElementById('verifyErr').textContent = '密码错误，请重试';
+        btn.disabled = false;
         return;
     }
 
-    // 验证成功，执行pending操作
     const action = pendingAction.type;
     const taskId = pendingAction.taskId;
     const queue = pendingAction.deleteQueue;
     closeVerifyModal();
 
     if (action === 'toggle') {
-        doToggleTask(taskId);
+        await doToggleTask(taskId);
     } else if (action === 'delete') {
         if (!confirm('密码验证通过！确定删除这条待办吗？')) return;
-        allTasks = allTasks.filter(t => t.id !== taskId);
-        saveTasks();
+        await api(`/api/tasks/${taskId}`, { method: 'DELETE' });
+        await loadTasks();
         renderFilterChips();
         renderAll();
-        // 继续队列中的其它删除
         if (queue) {
             const remaining = queue.filter(t => t.id !== taskId);
             if (remaining.length > 0) deleteOtherTasksOneByOne(remaining);
         }
     } else if (action === 'drag') {
-        // 拖拽场景：已经验证通过，允许本次拖拽
-        // 设置一个临时标记，让drop操作可以执行
         window._dragVerified = true;
         setTimeout(() => { window._dragVerified = false; }, 5000);
     }
@@ -1357,18 +1313,11 @@ function renderList() {
     const emptyState = document.getElementById('emptyState');
     const sorted = getSortedTasks();
 
-    // 更新统计
     const myTotal = allTasks.filter(t => t.owner === currentUser).length;
     const myDone = allTasks.filter(t => t.owner === currentUser && t.completed).length;
-    const allTotal = allTasks.length;
-    document.getElementById('taskSummary').textContent =
-        `我的：${myDone}/${myTotal} 完成 | 总计：${allTotal} 条`;
+    document.getElementById('taskSummary').textContent = `我的：${myDone}/${myTotal} 完成 | 总计：${allTasks.length} 条`;
 
-    if (sorted.length === 0) {
-        container.innerHTML = '';
-        emptyState.style.display = 'block';
-        return;
-    }
+    if (sorted.length === 0) { container.innerHTML = ''; emptyState.style.display = 'block'; return; }
 
     emptyState.style.display = 'none';
     container.innerHTML = sorted.map(task => {
@@ -1380,20 +1329,14 @@ function renderList() {
         const ownerClass = isMine ? 'me' : 'other';
         const ownerLabel = isMine ? '我' : escapeHtml(task.owner);
         const lockedHtml = isMine ? '' : '<span class="lock-icon" title="需密码验证">🔒</span>';
-
-        // 时间信息
         const createdTime = formatTime(task.createdAt);
         const completedTime = task.completed && task.completedAt ? ` · ✅ ${formatTime(task.completedAt)}` : '';
 
         return `
         <div class="task-item urgency-${urgency} ${task.completed ? 'completed' : ''} ${!isMine ? 'other-user' : ''}"
-             draggable="true"
-             data-id="${task.id}"
-             ondragstart="onDragStart(event)"
-             ondragend="onDragEnd(event)"
-             ondragover="onDragOver(event)"
-             ondragleave="onDragLeave(event)"
-             ondrop="onDrop(event)">
+             draggable="true" data-id="${task.id}"
+             ondragstart="onDragStart(event)" ondragend="onDragEnd(event)"
+             ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
             <span class="drag-handle" title="拖拽排序">⋮⋮</span>
             ${lockedHtml}
             <span class="checkbox ${task.completed ? 'done' : ''}" onclick="tryToggleTask('${task.id}')" title="${isMine ? '切换完成状态' : '需密码验证'}"></span>
@@ -1406,11 +1349,7 @@ function renderList() {
                     ${completedTime ? `<span class="time-info">${completedTime}</span>` : ''}
                 </div>
             </div>
-            ${deadlineText ? `
-            <span class="deadline-badge ${urgency === 'overdue' ? 'overdue' : urgency === 'today' ? 'today' : urgency === 'soon' ? 'soon' : 'normal'}"
-                  title="${remaining}">
-                ⏰ ${deadlineText}
-            </span>` : ''}
+            ${deadlineText ? `<span class="deadline-badge ${urgency === 'overdue' ? 'overdue' : urgency === 'today' ? 'today' : urgency === 'soon' ? 'soon' : 'normal'}" title="${remaining}">⏰ ${deadlineText}</span>` : ''}
             <button class="btn-delete" onclick="tryDeleteTask('${task.id}')" title="${isMine ? '删除' : '需密码验证'}">×</button>
         </div>`;
     }).join('');
@@ -1423,12 +1362,7 @@ function onDragStart(e) {
     const id = e.currentTarget.dataset.id;
     const task = allTasks.find(t => t.id === id);
     if (!task) return;
-    if (!isMyTask(task)) {
-        // 拖拽他人任务，需要验证
-        e.preventDefault();
-        tryDragDrop(id);
-        return false;
-    }
+    if (!isMyTask(task)) { e.preventDefault(); tryDragDrop(id); return false; }
     draggedId = id;
     e.currentTarget.classList.add('dragging');
     e.dataTransfer.effectAllowed = 'move';
@@ -1445,23 +1379,17 @@ function onDragOver(e) {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     const target = e.currentTarget;
-    if (target.dataset.id !== draggedId) {
-        target.classList.add('drag-over');
-    }
+    if (target.dataset.id !== draggedId) target.classList.add('drag-over');
 }
 
-function onDragLeave(e) {
-    e.currentTarget.classList.remove('drag-over');
-}
+function onDragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
 
-function onDrop(e) {
+async function onDrop(e) {
     e.preventDefault();
     e.currentTarget.classList.remove('drag-over');
-
     const targetId = e.currentTarget.dataset.id;
     if (!targetId || targetId === draggedId) return;
 
-    // 检查目标是否为自己的任务
     const targetTask = allTasks.find(t => t.id === targetId);
     if (targetTask && !isMyTask(targetTask) && !window._dragVerified) {
         tryDragDrop(targetId);
@@ -1479,10 +1407,15 @@ function onDrop(e) {
         newSorted.splice(draggedIndex, 1);
         newSorted.splice(targetIndex, 0, draggedTask);
         manualOrder = true;
-        newSorted.forEach((t, i) => { t.sortOrder = i; });
-        saveTasks();
-        window._dragVerified = false;
-        renderAll();
+
+        // 批量更新排序
+        const reorderData = newSorted.map((t, i) => ({ id: t.id, sortOrder: i }));
+        try {
+            await api('/api/tasks/reorder', { method: 'PUT', body: JSON.stringify({ tasks: reorderData }) });
+            await loadTasks();
+            window._dragVerified = false;
+            renderAll();
+        } catch (e) { alert('排序失败：' + e.message); }
     }
 }
 
@@ -1491,7 +1424,6 @@ function renderCalendar() {
     const year = calendarYear;
     const month = calendarMonth;
     document.getElementById('monthLabel').textContent = `${year}年 ${month + 1}月`;
-
     const grid = document.getElementById('calendarGrid');
     const weekHeaders = ['日','一','二','三','四','五','六'];
     let html = weekHeaders.map(d => `<div class="day-header">${d}</div>`).join('');
@@ -1502,9 +1434,7 @@ function renderCalendar() {
     const daysInMonth = lastDay.getDate();
 
     const prevLastDay = new Date(year, month, 0).getDate();
-    for (let i = startDayOfWeek - 1; i >= 0; i--) {
-        html += buildDayCell(year, month - 1, prevLastDay - i, true);
-    }
+    for (let i = startDayOfWeek - 1; i >= 0; i--) html += buildDayCell(year, month - 1, prevLastDay - i, true);
 
     const today = new Date();
     for (let day = 1; day <= daysInMonth; day++) {
@@ -1514,9 +1444,7 @@ function renderCalendar() {
 
     const totalCells = startDayOfWeek + daysInMonth;
     const remaining = totalCells <= 35 ? 35 - totalCells : 42 - totalCells;
-    for (let day = 1; day <= remaining; day++) {
-        html += buildDayCell(year, month + 1, day, true);
-    }
+    for (let day = 1; day <= remaining; day++) html += buildDayCell(year, month + 1, day, true);
 
     grid.innerHTML = html;
 }
@@ -1534,16 +1462,9 @@ function buildDayCell(year, month, day, otherMonth, isToday) {
         const urgency = getUrgency(t.deadline, t.completed);
         return `<span class="day-dot ${urgency}"></span>`;
     }).join('');
-
     const extra = cellTasks.length > 5 ? `<div class="day-task-count">+${cellTasks.length - 5} 更多</div>` : '';
 
-    return `
-    <div class="day-cell ${otherMonth ? 'other-month' : ''} ${isToday ? 'today' : ''}"
-         onclick="openDayDetail('${dateStr}')">
-        <div class="day-num">${day}</div>
-        <div class="day-dots">${dots}</div>
-        ${extra}
-    </div>`;
+    return `<div class="day-cell ${otherMonth ? 'other-month' : ''} ${isToday ? 'today' : ''}" onclick="openDayDetail('${dateStr}')"><div class="day-num">${day}</div><div class="day-dots">${dots}</div>${extra}</div>`;
 }
 
 function openDayDetail(dateStr) {
@@ -1557,7 +1478,6 @@ function openDayDetail(dateStr) {
 
     document.getElementById('dayDetailTitle').textContent = `${m}月${d}日 待办事项`;
     const content = document.getElementById('dayDetailContent');
-
     if (cellTasks.length === 0) {
         content.innerHTML = '<div class="empty">📭 当天没有待办</div>';
     } else {
@@ -1566,10 +1486,8 @@ function openDayDetail(dateStr) {
                 <div class="mini-title">${t.completed ? '✅ ' : ''}${escapeHtml(t.title)}</div>
                 ${t.desc ? `<div class="mini-desc">${escapeHtml(t.desc)}</div>` : ''}
                 <div class="mini-owner">👤 ${escapeHtml(t.owner)}</div>
-            </div>
-        `).join('');
+            </div>`).join('');
     }
-
     document.getElementById('dayDetail').classList.add('active');
 }
 
@@ -1614,13 +1532,9 @@ function switchView(view) {
     }
 }
 
-// ==================== 全局渲染 ====================
 function renderAll() {
-    if (currentView === 'calendar') {
-        renderCalendar();
-    } else {
-        renderList();
-    }
+    if (currentView === 'calendar') renderCalendar();
+    else renderList();
 }
 
 // ==================== 键盘快捷键 ====================
@@ -1635,7 +1549,6 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
-// 登录页回车登录
 document.getElementById('authPassword').addEventListener('keydown', function(e) {
     if (e.key === 'Enter') handleAuth();
 });
@@ -1648,26 +1561,28 @@ document.getElementById('verifyPwd').addEventListener('keydown', function(e) {
 
 // ==================== 启动 ====================
 async function init() {
-    loadUsers();
-    loadTasks();
+    await loadUsers();
 
-    // 检查是否有已登录的用户
     const savedUser = localStorage.getItem(CURRENT_USER_KEY);
-    if (savedUser && allUsers.find(u => u.username === savedUser)) {
-        currentUser = savedUser;
-        showMainApp();
-    } else {
-        // 显示登录页
-        document.getElementById('authPage').classList.remove('hidden');
-        document.getElementById('mainApp').classList.remove('active');
-        renderQuickUsers();
-        // 如果没有任何用户，默认展示注册页
-        if (allUsers.length === 0) {
-            authMode = 'login';
-            toggleAuthMode(); // 切到注册
-            document.getElementById('authTitle').textContent = '创建首个账号';
-            document.getElementById('authSub').textContent = '欢迎使用多人待办清单';
+    if (savedUser) {
+        // 验证该用户还存在于服务器
+        const exists = allUsers.find(u => u.username === savedUser);
+        if (exists) {
+            currentUser = savedUser;
+            showMainApp();
+            return;
         }
+    }
+
+    // 显示登录页
+    document.getElementById('authPage').classList.remove('hidden');
+    document.getElementById('mainApp').classList.remove('active');
+    renderQuickUsers();
+    if (allUsers.length === 0) {
+        authMode = 'login';
+        toggleAuthMode();
+        document.getElementById('authTitle').textContent = '创建首个账号';
+        document.getElementById('authSub').textContent = '欢迎使用多人待办清单';
     }
 }
 
