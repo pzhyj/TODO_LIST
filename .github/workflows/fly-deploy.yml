@@ -11,6 +11,12 @@ jobs:
 
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
+      - name: Create app if not exists
+        continue-on-error: true
+        run: flyctl apps create pzhyj-todo --org personal
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
       - name: Create volume if not exists
         continue-on-error: true
         run: flyctl volumes create todo_data --size 1 --region hkg --app pzhyj-todo
