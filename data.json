@@ -1,4 +1,297 @@
 {
-  "users": [],
-  "tasks": []
+  "users": [
+    {
+      "stats": {
+        "streak": 1,
+        "longestStreak": 1,
+        "totalCompleted": 0,
+        "lastCompletedDate": "2026-06-18",
+        "weeklyCompletions": 0
+      },
+      "username": "杨键",
+      "passwordHash": "34b0e7ae6e5ca228b6fddf77dacd7566b403dd899759c6377b1b89e653406341",
+      "createdAt": "2026-06-18T02:22:11.020Z"
+    },
+    {
+      "stats": {
+        "streak": 1,
+        "longestStreak": 1,
+        "totalCompleted": 1,
+        "lastCompletedDate": "2026-06-18",
+        "weeklyCompletions": 1
+      },
+      "username": "良安",
+      "passwordHash": "f6e0a1e2ac41945a9aa7ff8a8aaa0cebc12a3bcc981a929ad5cf810a090e11ae",
+      "createdAt": "2026-06-18T02:30:28.724Z"
+    }
+  ],
+  "tasks": [
+    {
+      "title": "111",
+      "description": "",
+      "tags": [
+        "学习"
+      ],
+      "status": "in_progress",
+      "priorityScore": 50,
+      "sortOrder": 1781749377816,
+      "deadline": "2026-06-18T14:22",
+      "timeBlock": null,
+      "owner": "杨键",
+      "groupId": null,
+      "supervisor": null,
+      "visibility": "public",
+      "isDaily": false,
+      "dailyDate": null,
+      "createdAt": "2026-06-18T02:22:57.816Z",
+      "completedAt": null,
+      "id": "mqivkqooynk0n"
+    },
+    {
+      "title": "1",
+      "description": "",
+      "tags": [
+        "学习"
+      ],
+      "status": "done",
+      "priorityScore": -1,
+      "sortOrder": 1781749858281,
+      "deadline": "2026-06-18T10:31",
+      "timeBlock": null,
+      "owner": "良安",
+      "groupId": null,
+      "supervisor": null,
+      "visibility": "public",
+      "isDaily": false,
+      "dailyDate": null,
+      "createdAt": "2026-06-18T02:30:58.281Z",
+      "completedAt": "2026-06-18T02:31:01.630Z",
+      "id": "mqivv1exyrc1u"
+    },
+    {
+      "title": "222",
+      "description": "",
+      "tags": [
+        "学习"
+      ],
+      "status": "in_progress",
+      "priorityScore": 50,
+      "sortOrder": 1781749929154,
+      "deadline": "2026-06-18T10:37",
+      "timeBlock": null,
+      "owner": "杨键",
+      "groupId": null,
+      "supervisor": null,
+      "visibility": "public",
+      "isDaily": false,
+      "dailyDate": null,
+      "createdAt": "2026-06-18T02:32:09.154Z",
+      "completedAt": null,
+      "id": "mqivwk3mauzm9"
+    },
+    {
+      "title": "3333",
+      "description": "",
+      "tags": [
+        "学习"
+      ],
+      "status": "todo",
+      "priorityScore": 25,
+      "sortOrder": 1781749969237,
+      "deadline": null,
+      "timeBlock": null,
+      "owner": "杨键",
+      "groupId": null,
+      "supervisor": null,
+      "visibility": "public",
+      "isDaily": false,
+      "dailyDate": null,
+      "createdAt": "2026-06-18T02:32:49.237Z",
+      "completedAt": null,
+      "id": "mqivxf11j11b3"
+    },
+    {
+      "title": "����Ĭ��״̬",
+      "description": "",
+      "tags": [],
+      "status": "in_progress",
+      "priorityScore": 25,
+      "sortOrder": 1781750758933,
+      "deadline": null,
+      "timeBlock": null,
+      "owner": "���",
+      "groupId": null,
+      "supervisor": null,
+      "visibility": "public",
+      "isDaily": false,
+      "dailyDate": null,
+      "createdAt": "2026-06-18T02:45:58.933Z",
+      "completedAt": null,
+      "id": "mqiwecd1dtq21"
+    },
+    {
+      "title": "1",
+      "description": "",
+      "tags": [],
+      "status": "in_progress",
+      "priorityScore": 25,
+      "sortOrder": 1781750955856,
+      "deadline": null,
+      "timeBlock": null,
+      "owner": "杨键",
+      "groupId": null,
+      "supervisor": null,
+      "visibility": "public",
+      "isDaily": false,
+      "dailyDate": null,
+      "createdAt": "2026-06-18T02:49:15.856Z",
+      "completedAt": null,
+      "id": "mqiwikb4mux3t"
+    },
+    {
+      "title": "你干嘛",
+      "description": "",
+      "tags": [
+        "项目"
+      ],
+      "status": "in_progress",
+      "priorityScore": 50,
+      "sortOrder": 1781751049548,
+      "deadline": "2026-06-18T13:50",
+      "timeBlock": null,
+      "owner": "良安",
+      "groupId": "mqivn8mxnpwrs",
+      "supervisor": null,
+      "visibility": "public",
+      "isDaily": false,
+      "dailyDate": null,
+      "createdAt": "2026-06-18T02:50:49.548Z",
+      "completedAt": null,
+      "id": "mqiwkklnbz2n8"
+    },
+    {
+      "title": "9",
+      "description": "",
+      "tags": [],
+      "status": "in_progress",
+      "priorityScore": 25,
+      "sortOrder": 1781752564257,
+      "deadline": null,
+      "timeBlock": null,
+      "owner": "良安",
+      "groupId": "mqivn8mxnpwrs",
+      "supervisor": null,
+      "visibility": "public",
+      "isDaily": false,
+      "dailyDate": null,
+      "createdAt": "2026-06-18T03:16:04.257Z",
+      "completedAt": null,
+      "id": "mqixh1cwwh1gr"
+    }
+  ],
+  "groups": [
+    {
+      "id": "mqivn8mxnpwrs",
+      "name": "牛子",
+      "owner": "杨键",
+      "createdAt": "2026-06-18T02:24:54.393Z",
+      "members": [
+        {
+          "username": "杨键",
+          "role": "owner"
+        },
+        {
+          "username": "良安",
+          "role": "member"
+        }
+      ],
+      "messages": [
+        {
+          "id": "mqivndajdws0l",
+          "from": "杨键",
+          "type": "chat",
+          "content": "hello",
+          "createdAt": "2026-06-18T02:25:00.427Z"
+        },
+        {
+          "id": "mqivngm8n57s0",
+          "from": "杨键",
+          "type": "chat",
+          "content": "有人吗",
+          "createdAt": "2026-06-18T02:25:04.736Z"
+        },
+        {
+          "id": "mqivnr1zj1i9v",
+          "from": "杨键",
+          "type": "task_assign",
+          "content": "一百个单词",
+          "createdAt": "2026-06-18T02:25:18.263Z"
+        },
+        {
+          "id": "mqivs82300x2w",
+          "from": "杨键",
+          "type": "summary",
+          "content": "📝 今日总结：可以可以你",
+          "createdAt": "2026-06-18T02:28:46.923Z"
+        },
+        {
+          "id": "mqiwkkm200jgs",
+          "from": "杨键",
+          "type": "task_assign",
+          "content": "📋 派送任务「你干嘛」给 良安，截止：2026-06-18T13:50",
+          "createdAt": "2026-06-18T02:50:49.562Z"
+        },
+        {
+          "id": "mqixh1d8eyoaw",
+          "from": "杨键",
+          "type": "task_assign",
+          "content": "📋 派送任务「9」给 良安",
+          "createdAt": "2026-06-18T03:16:04.268Z"
+        }
+      ]
+    }
+  ],
+  "dailyGoals": [
+    {
+      "username": "良安",
+      "date": "2026-06-18",
+      "target": 1
+    }
+  ],
+  "dailySummaries": [
+    {
+      "id": "mqivrcjub9e6g",
+      "username": "杨键",
+      "date": "2026-06-18",
+      "content": "可以可以你",
+      "visibility": "public",
+      "createdAt": "2026-06-18T02:31:42.698Z"
+    },
+    {
+      "id": "mqivv8pb1tuef",
+      "username": "良安",
+      "date": "2026-06-18",
+      "content": "可以可以你",
+      "visibility": "private",
+      "createdAt": "2026-06-18T02:31:07.727Z"
+    }
+  ],
+  "checkIns": [
+    {
+      "username": "杨键",
+      "date": "2026-06-18",
+      "taskCompleted": 0,
+      "targetMet": false,
+      "hasSummary": true,
+      "checkedIn": false
+    },
+    {
+      "username": "良安",
+      "date": "2026-06-18",
+      "taskCompleted": 1,
+      "targetMet": true,
+      "hasSummary": true,
+      "checkedIn": true
+    }
+  ]
 }

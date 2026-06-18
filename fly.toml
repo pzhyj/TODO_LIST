@@ -1,4 +1,5 @@
-app = "todo-list"
+app = "pzhyj-todo"
+primary_region = "hkg"
 
 [build]
 
