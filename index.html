@@ -2,31 +2,33 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TODO LIST - 多人待办清单</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>TODO LIST - 学习监督协作平台</title>
 <style>
-/* ========== 基础变量 ========== */
+/* ============ 变量 ============ */
 :root {
     --bg: #f2f2f7;
     --card: #ffffff;
     --text: #1d1d1f;
-    --text-secondary: #6e6e73;
+    --text2: #6e6e73;
     --border: #e5e5ea;
     --primary: #0071e3;
     --primary-hover: #0077ed;
     --danger: #ff3b30;
     --success: #34c759;
+    --warning: #ff9500;
+    --purple: #8944d6;
     --overdue: #ff3b30;
     --today: #ff9500;
     --soon: #ffcc02;
     --shadow: 0 2px 12px rgba(0,0,0,0.08);
     --shadow-lg: 0 20px 60px rgba(0,0,0,0.15);
-    --radius: 12px;
+    --radius: 14px;
     --radius-sm: 8px;
     --transition: 0.2s ease;
 }
 
-* { margin: 0; padding: 0; box-sizing: border-box; }
+* { margin:0; padding:0; box-sizing:border-box; }
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
@@ -35,9 +37,10 @@ body {
     min-height: 100vh;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
 }
 
-/* ========== 登录/注册页 ========== */
+/* ============ 鉴权页 ============ */
 .auth-page {
     display: flex;
     justify-content: center;
@@ -45,6 +48,7 @@ body {
     min-height: 100vh;
     padding: 20px;
 }
+.auth-page.hidden { display: none; }
 
 .auth-card {
     background: var(--card);
@@ -55,686 +59,434 @@ body {
     box-shadow: var(--shadow-lg);
     text-align: center;
 }
-
-.auth-card .logo {
-    font-size: 48px;
-    margin-bottom: 8px;
-}
-.auth-card h2 {
-    font-size: 22px;
-    font-weight: 700;
-    margin-bottom: 4px;
-}
-.auth-card .sub {
-    color: var(--text-secondary);
-    font-size: 13px;
-    margin-bottom: 24px;
-}
-
-.auth-card .field {
-    margin-bottom: 14px;
-    text-align: left;
-}
-.auth-card .field label {
-    display: block;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text-secondary);
-    margin-bottom: 5px;
-}
+.auth-card .logo { font-size: 48px; margin-bottom: 8px; }
+.auth-card h2 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+.auth-card .sub { color: var(--text2); font-size: 13px; margin-bottom: 24px; }
+.auth-card .field { margin-bottom: 14px; text-align: left; }
+.auth-card .field label { display: block; font-size: 13px; font-weight: 600; color: var(--text2); margin-bottom: 5px; }
 .auth-card .field input {
-    width: 100%;
-    padding: 10px 14px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    font-size: 15px;
-    font-family: inherit;
-    outline: none;
-    transition: border var(--transition);
-    background: #fafafa;
+    width: 100%; padding: 10px 14px; border: 1px solid var(--border);
+    border-radius: var(--radius-sm); font-size: 15px; font-family: inherit;
+    outline: none; transition: border var(--transition); background: #fafafa;
 }
-.auth-card .field input:focus {
-    border-color: var(--primary);
-    background: #fff;
-}
-.auth-card .err {
-    color: var(--danger);
-    font-size: 12px;
-    min-height: 18px;
-    margin-top: 2px;
-}
-
+.auth-card .field input:focus { border-color: var(--primary); background: #fff; }
+.auth-card .err { color: var(--danger); font-size: 12px; min-height: 18px; margin-top: 2px; }
 .auth-card .btn-primary {
-    width: 100%;
-    padding: 12px;
-    background: var(--primary);
-    color: #fff;
-    border: none;
-    border-radius: var(--radius-sm);
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    margin-top: 6px;
-    font-family: inherit;
-    transition: background var(--transition);
+    width: 100%; padding: 12px; background: var(--primary); color: #fff;
+    border: none; border-radius: var(--radius-sm); font-size: 16px; font-weight: 600;
+    cursor: pointer; margin-top: 6px; font-family: inherit; transition: background var(--transition);
 }
 .auth-card .btn-primary:hover { background: var(--primary-hover); }
+.auth-card .switch-link { margin-top: 16px; font-size: 13px; color: var(--text2); }
+.auth-card .switch-link a { color: var(--primary); cursor: pointer; text-decoration: none; font-weight: 500; }
 
-.auth-card .switch-link {
-    margin-top: 16px;
-    font-size: 13px;
-    color: var(--text-secondary);
-}
-.auth-card .switch-link a {
-    color: var(--primary);
-    cursor: pointer;
-    text-decoration: none;
-    font-weight: 500;
-}
-.auth-card .switch-link a:hover { text-decoration: underline; }
-
-/* 已有用户快速选择 */
-.user-quick-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    justify-content: center;
-    margin-bottom: 20px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid var(--border);
-}
+.user-quick-list { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
 .user-quick-chip {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 14px;
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    background: #f9f9fb;
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 500;
-    font-family: inherit;
-    transition: all var(--transition);
+    display: flex; align-items: center; gap: 6px; padding: 8px 14px;
+    border: 1px solid var(--border); border-radius: 20px; background: #f9f9fb;
+    cursor: pointer; font-size: 13px; font-weight: 500; font-family: inherit; transition: all var(--transition);
 }
-.user-quick-chip:hover {
-    background: #e8f4fd;
-    border-color: var(--primary);
-}
-.user-quick-chip .avatar {
-    width: 24px; height: 24px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 13px;
-    font-weight: 700;
-    color: #fff;
-    flex-shrink: 0;
-}
+.user-quick-chip:hover { background: #e8f4fd; border-color: var(--primary); }
+.user-quick-chip .avatar { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; flex-shrink: 0; }
 
-/* ========== 主应用 ========== */
+/* ============ 主应用 ============ */
 .app { display: none; }
-.app.active { display: block; }
-.auth-page { display: flex; }
-.auth-page.hidden { display: none; }
+.app.active { display: flex; flex-direction: column; min-height: 100vh; padding-bottom: 70px; }
 
-.app-inner {
-    max-width: 760px;
-    margin: 0 auto;
-    padding: 16px 16px 60px;
-}
+.app-inner { max-width: 760px; margin: 0 auto; width: 100%; padding: 12px 14px; flex: 1; }
 
-/* ========== 顶部栏 ========== */
+/* 顶栏 */
 .topbar {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: var(--card);
-    padding: 10px 16px;
-    border-radius: var(--radius);
-    margin-bottom: 14px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-    flex-wrap: wrap;
+    display: flex; align-items: center; gap: 10px; background: var(--card);
+    padding: 8px 14px; border-radius: 12px; margin-bottom: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04); flex-wrap: wrap;
 }
-.topbar .current-user {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-weight: 600;
-    font-size: 15px;
-}
-.topbar .user-avatar {
-    width: 32px; height: 32px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 15px;
-    font-weight: 700;
-    color: #fff;
-    flex-shrink: 0;
-}
-.topbar .topbar-actions {
-    margin-left: auto;
-    display: flex;
-    gap: 8px;
-}
-
+.topbar .current-user { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; }
+.topbar .user-avatar { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #fff; flex-shrink: 0; }
+.topbar .topbar-actions { margin-left: auto; display: flex; gap: 6px; }
 .btn-sm {
-    padding: 6px 14px;
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    background: var(--card);
-    font-size: 13px;
-    cursor: pointer;
-    font-family: inherit;
-    transition: all var(--transition);
-    white-space: nowrap;
+    padding: 5px 12px; border: 1px solid var(--border); border-radius: 14px;
+    background: var(--card); font-size: 12px; cursor: pointer; font-family: inherit;
+    transition: all var(--transition); white-space: nowrap;
 }
 .btn-sm:hover { background: #f0f0f5; }
 .btn-sm.danger { color: var(--danger); border-color: #ffd5d3; }
-.btn-sm.danger:hover { background: #fff0ef; }
 
-/* ========== 工具栏 ========== */
-header {
-    text-align: center;
-    padding: 16px 0 14px;
-}
-header h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
-header .subtitle { color: var(--text-secondary); font-size: 13px; margin-top: 2px; }
+/* 面板容器 */
+.panel { display: none; }
+.panel.active { display: block; }
 
-.toolbar {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 14px;
-    flex-wrap: wrap;
-}
-
+/* 工具栏 */
+.toolbar { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; align-items: center; }
 .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 7px 14px;
-    border: 1px solid var(--border);
-    border-radius: 18px;
-    background: var(--card);
-    color: var(--text);
-    font-size: 13px;
-    cursor: pointer;
-    transition: all var(--transition);
-    font-family: inherit;
-    white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px;
+    border: 1px solid var(--border); border-radius: 16px; background: var(--card);
+    color: var(--text); font-size: 12px; cursor: pointer; transition: all var(--transition);
+    font-family: inherit; white-space: nowrap;
 }
 .btn:hover { background: #f0f0f5; }
-.btn.active {
-    background: var(--primary);
-    color: #fff;
-    border-color: var(--primary);
-}
-.btn .icon { font-size: 15px; }
+.btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.btn .icon { font-size: 14px; }
 
-/* 用户筛选标签 */
-.user-filter-chips {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-    margin-bottom: 10px;
+/* 筛选芯片 */
+.filter-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.chip {
+    padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 500;
+    cursor: pointer; border: 1px solid var(--border); background: #fff;
+    font-family: inherit; transition: all var(--transition);
 }
-.filter-chip {
-    padding: 5px 12px;
-    border-radius: 14px;
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    border: 1px solid var(--border);
-    background: #fff;
-    font-family: inherit;
-    transition: all var(--transition);
-}
-.filter-chip:hover { background: #f0f0f5; }
-.filter-chip.active {
-    background: var(--primary);
-    color: #fff;
-    border-color: var(--primary);
-}
+.chip:hover { background: #f0f0f5; }
+.chip.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 
-/* ========== 添加表单 ========== */
+/* 添加表单 */
 .add-form {
-    background: var(--card);
-    border-radius: var(--radius);
-    padding: 14px;
-    margin-bottom: 14px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    background: var(--card); border-radius: var(--radius); padding: 12px;
+    margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
-.add-form .row {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-.add-form input, .add-form textarea {
-    flex: 1;
-    min-width: 130px;
-    padding: 9px 12px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    font-size: 13px;
-    font-family: inherit;
-    outline: none;
-    transition: border var(--transition);
+.add-form .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.add-form .row-2 { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.add-form input, .add-form textarea, .add-form select {
+    padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px;
+    font-size: 12px; font-family: inherit; outline: none; transition: border var(--transition);
     background: #fafafa;
 }
-.add-form input:focus, .add-form textarea:focus {
-    border-color: var(--primary);
-    background: #fff;
-}
-.add-form textarea {
-    resize: vertical;
-    min-height: 34px;
-    max-height: 72px;
-}
-.add-form input[type="datetime-local"] {
-    max-width: 190px;
-    color-scheme: light;
-}
+.add-form input:focus, .add-form textarea:focus, .add-form select:focus { border-color: var(--primary); background: #fff; }
+.add-form textarea { resize: vertical; min-height: 30px; max-height: 60px; }
+.add-form input[type="datetime-local"] { max-width: 170px; color-scheme: light; }
+.add-form select { max-width: 90px; }
 .add-form .btn-add {
-    padding: 9px 20px;
-    background: var(--primary);
-    color: #fff;
-    border: none;
-    border-radius: var(--radius-sm);
-    font-weight: 600;
-    font-size: 13px;
-    cursor: pointer;
-    flex-shrink: 0;
-    font-family: inherit;
+    padding: 7px 18px; background: var(--primary); color: #fff; border: none;
+    border-radius: 6px; font-weight: 600; font-size: 12px; cursor: pointer;
+    flex-shrink: 0; font-family: inherit;
 }
 .add-form .btn-add:hover { background: var(--primary-hover); }
 
-/* ========== 任务卡片 ========== */
-.task-list { display: flex; flex-direction: column; gap: 7px; }
-
+/* 任务卡片 */
+.task-list { display: flex; flex-direction: column; gap: 6px; }
 .task-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: var(--card);
-    padding: 12px 14px;
-    border-radius: var(--radius);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-    cursor: grab;
-    transition: all var(--transition);
-    border-left: 4px solid transparent;
+    display: flex; align-items: center; gap: 8px; background: var(--card);
+    padding: 10px 12px; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    cursor: grab; transition: all var(--transition); border-left: 4px solid transparent;
     position: relative;
 }
 .task-item:hover { box-shadow: var(--shadow); }
 .task-item:active { cursor: grabbing; }
 .task-item.dragging { opacity: 0.5; transform: scale(0.98); }
 .task-item.drag-over { border-top: 3px solid var(--primary); border-radius: 0; }
-
 .task-item.urgency-overdue { border-left-color: var(--overdue); }
 .task-item.urgency-today   { border-left-color: var(--today); }
 .task-item.urgency-soon    { border-left-color: var(--soon); }
-.task-item.completed {
-    opacity: 0.5;
-    border-left-color: #ccc;
-}
-.task-item.other-user {
-    background: #fdfdfb;
-}
+.task-item.done { opacity: 0.45; border-left-color: #ccc; }
+.task-item.other-user { background: #fdfdfb; }
 
-/* 拖拽手柄 */
-.drag-handle {
-    color: #c7c7cc;
-    font-size: 16px;
-    cursor: grab;
-    user-select: none;
-    letter-spacing: 2px;
-    flex-shrink: 0;
-}
+.drag-handle { color: #c7c7cc; font-size: 15px; cursor: grab; user-select: none; letter-spacing: 2px; flex-shrink: 0; }
+
+/* 状态选择 */
+.status-select { font-size: 11px; padding: 2px 6px; border-radius: 8px; border: 1px solid var(--border); background: #fff; cursor: pointer; font-family: inherit; flex-shrink: 0; }
+.status-select.todo { color: var(--text2); }
+.status-select.in_progress { color: var(--warning); border-color: #ffe0b2; background: #fff8e1; }
+.status-select.done { color: var(--success); border-color: #c8e6c9; background: #e8f5e9; }
 
 /* 复选框 */
 .checkbox {
-    width: 20px; height: 20px;
-    border: 2px solid #d1d1d6;
-    border-radius: 50%;
-    flex-shrink: 0;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all var(--transition);
+    width: 20px; height: 20px; border: 2px solid #d1d1d6; border-radius: 50%;
+    flex-shrink: 0; cursor: pointer; display: flex; align-items: center;
+    justify-content: center; transition: all var(--transition);
 }
 .checkbox:hover { border-color: var(--success); }
-.checkbox.done {
-    background: var(--success);
-    border-color: var(--success);
-}
-.checkbox.done::after {
-    content: '✓';
-    color: #fff;
-    font-size: 12px;
-    font-weight: 700;
-}
+.checkbox.done { background: var(--success); border-color: var(--success); }
+.checkbox.done::after { content: '✓'; color: #fff; font-size: 12px; font-weight: 700; }
 
-/* 任务内容 */
 .task-body { flex: 1; min-width: 0; }
-.task-title {
-    font-size: 15px;
-    font-weight: 500;
-    word-break: break-word;
-}
-.task-item.completed .task-title {
-    text-decoration: line-through;
-    color: var(--text-secondary);
-}
-.task-desc {
-    font-size: 12px;
-    color: var(--text-secondary);
-    margin-top: 2px;
-    word-break: break-word;
-}
+.task-title { font-size: 14px; font-weight: 500; word-break: break-word; display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.task-title .title-text { flex: 1; }
+.task-item.done .title-text { text-decoration: line-through; color: var(--text2); }
+.task-desc { font-size: 11px; color: var(--text2); margin-top: 2px; word-break: break-word; }
 
-/* 创建者标签 */
+/* 标签 */
+.tag-badge {
+    display: inline-block; font-size: 10px; padding: 1px 7px; border-radius: 8px;
+    font-weight: 500; white-space: nowrap; flex-shrink: 0;
+}
+.tag-学习 { background: #e3f2fd; color: #1565c0; }
+.tag-作业 { background: #fff3e0; color: #e65100; }
+.tag-考试 { background: #fce4ec; color: #c62828; }
+.tag-项目 { background: #e8f5e9; color: #2e7d32; }
+.tag-其他 { background: #f3e5f5; color: #6a1b9a; }
+
+/* 图标徽章 */
+.icon-badges { display: inline-flex; gap: 3px; align-items: center; font-size: 11px; }
+.icon-badges span { opacity: 0.7; }
+
+/* 优先级 */
+.priority-score {
+    font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 8px;
+    background: #f0f0f5; color: var(--text2); flex-shrink: 0; white-space: nowrap;
+}
+.priority-score.high { background: #ffeaea; color: var(--overdue); }
+.priority-score.mid { background: #fff3e0; color: var(--today); }
+
+.task-meta { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 3px; align-items: center; }
+.time-info { font-size: 10px; color: #999; white-space: nowrap; }
 .owner-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    font-size: 11px;
-    font-weight: 600;
-    padding: 3px 8px;
-    border-radius: 10px;
-    white-space: nowrap;
-    flex-shrink: 0;
+    display: inline-flex; align-items: center; gap: 2px; font-size: 10px;
+    font-weight: 600; padding: 2px 7px; border-radius: 8px; white-space: nowrap; flex-shrink: 0;
 }
-.owner-badge.me {
-    background: #e8f4fd;
-    color: var(--primary);
-}
-.owner-badge.other {
-    background: #f5f0ff;
-    color: #8944d6;
-}
+.owner-badge.me { background: #e8f4fd; color: var(--primary); }
+.owner-badge.other { background: #f5f0ff; color: var(--purple); }
 
-/* 时间信息 */
-.task-meta {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-    margin-top: 4px;
-}
-.task-meta .time-info {
-    font-size: 11px;
-    color: #999;
-    white-space: nowrap;
-}
-
-/* 截止时间 */
 .deadline-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    font-size: 11px;
-    font-weight: 500;
-    padding: 3px 8px;
-    border-radius: 10px;
-    white-space: nowrap;
-    flex-shrink: 0;
+    display: inline-flex; align-items: center; gap: 2px; font-size: 10px;
+    font-weight: 500; padding: 2px 7px; border-radius: 8px; white-space: nowrap; flex-shrink: 0;
 }
 .deadline-badge.overdue { background: #ffeaea; color: var(--overdue); }
 .deadline-badge.today   { background: #fff3e0; color: var(--today); }
 .deadline-badge.soon    { background: #fffef0; color: #b8a600; }
-.deadline-badge.normal  { background: #f0f0f5; color: var(--text-secondary); }
+.deadline-badge.normal  { background: #f0f0f5; color: var(--text2); }
 
-/* 删除按钮 */
-.btn-delete {
-    width: 28px; height: 28px;
-    border: none;
-    background: transparent;
-    color: #c7c7cc;
-    font-size: 17px;
-    cursor: pointer;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    transition: all var(--transition);
+.btn-icon {
+    width: 28px; height: 28px; border: none; background: transparent; color: #c7c7cc;
+    font-size: 16px; cursor: pointer; border-radius: 50%; display: flex;
+    align-items: center; justify-content: center; flex-shrink: 0; transition: all var(--transition);
 }
-.btn-delete:hover { background: #ffeaea; color: var(--danger); }
+.btn-icon:hover { background: #ffeaea; color: var(--danger); }
+.btn-icon.focus-btn:hover { background: #e8f4fd; color: var(--primary); }
 
-/* 他人任务锁定图标 */
-.lock-icon {
-    font-size: 12px;
-    color: #ccc;
-    flex-shrink: 0;
-}
+/* 空状态 */
+.empty-state { text-align: center; padding: 50px 20px; color: var(--text2); }
+.empty-state .icon { font-size: 48px; margin-bottom: 10px; }
+.empty-state p { font-size: 14px; }
 
-/* ========== 密码验证弹窗 ========== */
-.modal-overlay {
-    display: none;
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.45);
-    z-index: 200;
-    justify-content: center;
-    align-items: center;
-    padding: 20px;
-}
-.modal-overlay.active { display: flex; }
-
-.modal-box {
-    background: var(--card);
-    border-radius: var(--radius);
-    padding: 24px 20px;
-    max-width: 360px;
-    width: 100%;
-    box-shadow: var(--shadow-lg);
-    text-align: center;
-}
-.modal-box h4 { font-size: 17px; margin-bottom: 6px; }
-.modal-box .modal-sub {
-    font-size: 13px;
-    color: var(--text-secondary);
-    margin-bottom: 16px;
-}
-.modal-box input {
-    width: 100%;
-    padding: 10px 14px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    font-size: 15px;
-    font-family: inherit;
-    outline: none;
-    background: #fafafa;
-    text-align: center;
-}
-.modal-box input:focus { border-color: var(--primary); background: #fff; }
-.modal-box .modal-err {
-    color: var(--danger);
-    font-size: 12px;
-    min-height: 18px;
-    margin-top: 4px;
-}
-.modal-box .modal-btns {
-    display: flex;
-    gap: 8px;
-    margin-top: 14px;
-}
-.modal-box .modal-btns button {
-    flex: 1;
-    padding: 10px;
-    border-radius: var(--radius-sm);
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    font-family: inherit;
-    border: 1px solid var(--border);
-    background: #f5f5f7;
-    color: var(--text);
-    transition: all var(--transition);
-}
-.modal-box .modal-btns .btn-confirm {
-    background: var(--primary);
-    color: #fff;
-    border: none;
-}
-.modal-box .modal-btns .btn-confirm:hover { background: var(--primary-hover); }
-
-/* ========== 日历视图 ========== */
-.calendar-view { display: none; }
-.calendar-view.active { display: block; }
-.task-list-view { display: block; }
-.task-list-view.hidden { display: none; }
-.add-form.hidden { display: none; }
-
+/* ============ 日历 ============ */
 .calendar-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 14px;
-    background: var(--card);
-    padding: 10px 14px;
-    border-radius: var(--radius);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px; background: var(--card); padding: 10px 14px;
+    border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
-.calendar-header .month-label { font-size: 17px; font-weight: 600; }
+.calendar-header .month-label { font-size: 16px; font-weight: 600; }
 .calendar-header .nav-btn {
-    width: 34px; height: 34px;
-    border: 1px solid var(--border);
-    border-radius: 50%;
-    background: #fff;
-    cursor: pointer;
-    font-size: 15px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    width: 32px; height: 32px; border: 1px solid var(--border); border-radius: 50%;
+    background: #fff; cursor: pointer; font-size: 14px; display: flex;
+    align-items: center; justify-content: center;
 }
 .calendar-header .nav-btn:hover { background: #f0f0f5; }
-
-.calendar-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 1px;
-    background: var(--border);
-    border-radius: var(--radius);
-    overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-}
-.calendar-grid .day-header {
-    background: #f9f9fb;
-    padding: 9px 4px;
-    text-align: center;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text-secondary);
-}
+.calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: var(--border); border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+.calendar-grid .day-header { background: #f9f9fb; padding: 8px 2px; text-align: center; font-size: 10px; font-weight: 600; color: var(--text2); }
 .calendar-grid .day-cell {
-    background: var(--card);
-    min-height: 66px;
-    padding: 5px;
-    cursor: pointer;
-    transition: all var(--transition);
-    position: relative;
+    background: var(--card); min-height: 56px; padding: 4px; cursor: pointer;
+    transition: all var(--transition); position: relative;
 }
 .calendar-grid .day-cell:hover { background: #f5f5fa; }
 .calendar-grid .day-cell.other-month { opacity: 0.3; }
 .calendar-grid .day-cell.today { background: #e8f4fd; }
 .calendar-grid .day-cell.today .day-num {
-    background: var(--primary);
-    color: #fff;
-    border-radius: 50%;
-    width: 24px; height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    background: var(--primary); color: #fff; border-radius: 50%;
+    width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;
 }
-.day-num { font-size: 12px; font-weight: 500; margin-bottom: 3px; }
-.day-dots { display: flex; flex-wrap: wrap; gap: 2px; }
-.day-dot {
-    width: 5px; height: 5px;
-    border-radius: 50%;
-    flex-shrink: 0;
-}
+.day-num { font-size: 11px; font-weight: 500; margin-bottom: 2px; }
+.day-dots { display: flex; flex-wrap: wrap; gap: 1px; }
+.day-dot { width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0; }
 .day-dot.overdue { background: var(--overdue); }
 .day-dot.today   { background: var(--today); }
 .day-dot.soon    { background: var(--soon); }
 .day-dot.normal  { background: #ccc; }
 .day-dot.done    { background: var(--success); }
-.day-task-count { font-size: 10px; color: var(--text-secondary); margin-top: 1px; }
+.day-task-count { font-size: 9px; color: var(--text2); margin-top: 1px; }
 
-/* 日历日详情弹窗 */
-.day-detail {
-    display: none;
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.4);
-    z-index: 100;
-    justify-content: center;
-    align-items: center;
+.day-detail-overlay {
+    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.4); z-index: 100; justify-content: center;
+    align-items: center; padding: 20px;
+}
+.day-detail-overlay.active { display: flex; }
+.day-detail-panel {
+    background: var(--card); border-radius: var(--radius); padding: 16px;
+    max-width: 400px; width: 100%; max-height: 60vh; overflow-y: auto; box-shadow: var(--shadow-lg);
+}
+
+/* ============ 小组面板 ============ */
+.group-list { display: flex; flex-direction: column; gap: 10px; }
+.group-card {
+    background: var(--card); border-radius: var(--radius); padding: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+.group-card h4 { font-size: 15px; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+.group-card .group-meta { font-size: 11px; color: var(--text2); margin-bottom: 8px; }
+.group-card .member-list { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+.group-card .member-chip {
+    font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 500;
+}
+.member-chip.owner { background: #e8f4fd; color: var(--primary); }
+.member-chip.member { background: #f0f0f5; color: var(--text2); }
+.member-chip.supervisor { background: #f5f0ff; color: var(--purple); }
+
+.messages-area { max-height: 200px; overflow-y: auto; background: #fafafa; border-radius: 8px; padding: 8px; margin-bottom: 8px; }
+.msg-item { padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.msg-item:last-child { border-bottom: none; }
+.msg-item .msg-from { font-weight: 600; color: var(--primary); }
+.msg-item .msg-type { font-size: 10px; color: var(--text2); }
+.msg-item .msg-time { font-size: 10px; color: #ccc; float: right; }
+.msg-input-row { display: flex; gap: 6px; }
+.msg-input-row select { max-width: 90px; font-size: 11px; padding: 6px; border: 1px solid var(--border); border-radius: 6px; font-family: inherit; }
+.msg-input-row input { flex: 1; padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 12px; font-family: inherit; }
+.msg-input-row button { padding: 6px 12px; background: var(--primary); color: #fff; border: none; border-radius: 6px; font-size: 12px; cursor: pointer; font-family: inherit; }
+
+/* ============ 统计面板 ============ */
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.stat-card {
+    background: var(--card); border-radius: 12px; padding: 16px; text-align: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+.stat-card .stat-num { font-size: 32px; font-weight: 700; }
+.stat-card .stat-label { font-size: 11px; color: var(--text2); margin-top: 2px; }
+.stat-card.fire .stat-num { color: #ff9500; }
+.stat-card.rate .stat-num { color: var(--success); }
+.stat-card.total .stat-num { color: var(--primary); }
+.stat-card.streak .stat-num { color: #ff3b30; }
+
+.leaderboard { background: var(--card); border-radius: 12px; padding: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); margin-bottom: 14px; }
+.leaderboard h4 { font-size: 15px; margin-bottom: 10px; }
+.lb-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.lb-row:last-child { border-bottom: none; }
+.lb-rank { font-weight: 700; font-size: 16px; width: 28px; text-align: center; flex-shrink: 0; }
+.lb-rank.gold { color: #f0c040; }
+.lb-rank.silver { color: #b0b0b0; }
+.lb-rank.bronze { color: #c08040; }
+.lb-name { flex: 1; font-weight: 500; }
+.lb-stat { color: var(--text2); font-size: 11px; }
+
+.summary-section { background: var(--card); border-radius: 12px; padding: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); margin-bottom: 14px; }
+.summary-section h4 { font-size: 15px; margin-bottom: 8px; }
+.summary-section textarea {
+    width: 100%; min-height: 80px; padding: 10px; border: 1px solid var(--border);
+    border-radius: 8px; font-size: 13px; font-family: inherit; resize: vertical;
+    background: #fafafa; outline: none;
+}
+.summary-section textarea:focus { border-color: var(--primary); background: #fff; }
+.summary-section .summary-actions { display: flex; gap: 6px; margin-top: 8px; align-items: center; }
+
+/* ============ 底部导航 ============ */
+.tab-nav {
+    position: fixed; bottom: 0; left: 0; right: 0; background: var(--card);
+    border-top: 1px solid var(--border); display: flex; z-index: 50;
+    padding: 6px 0 env(safe-area-inset-bottom, 6px);
+    box-shadow: 0 -1px 6px rgba(0,0,0,0.04);
+}
+.tab-btn {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 2px; padding: 6px 0; border: none;
+    background: transparent; color: var(--text2); font-size: 10px;
+    font-family: inherit; cursor: pointer; transition: all var(--transition);
+}
+.tab-btn .tab-icon { font-size: 20px; }
+.tab-btn.active { color: var(--primary); }
+.tab-btn .tab-badge {
+    position: absolute; top: 2px; margin-left: 18px; background: var(--danger);
+    color: #fff; font-size: 9px; padding: 1px 5px; border-radius: 8px; min-width: 16px;
+}
+
+/* ============ 专注模式 ============ */
+.focus-overlay {
+    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: #1a1a2e; z-index: 300; flex-direction: column;
+    align-items: center; justify-content: center; color: #fff; text-align: center;
     padding: 20px;
 }
-.day-detail.active { display: flex; }
-.day-detail .panel {
-    background: var(--card);
-    border-radius: var(--radius);
-    padding: 18px;
-    max-width: 400px;
-    width: 100%;
-    max-height: 60vh;
-    overflow-y: auto;
-    box-shadow: var(--shadow-lg);
+.focus-overlay.active { display: flex; }
+.focus-overlay .focus-title {
+    font-size: 22px; font-weight: 600; margin-bottom: 10px; max-width: 80vw;
 }
-.day-detail h4 { font-size: 16px; margin-bottom: 12px; }
-.day-detail .mini-task {
-    padding: 9px 0;
-    border-bottom: 1px solid var(--border);
-    font-size: 13px;
+.focus-overlay .focus-subtitle { font-size: 13px; opacity: 0.7; margin-bottom: 30px; }
+.focus-overlay .focus-timer {
+    font-size: 96px; font-weight: 200; font-variant-numeric: tabular-nums;
+    letter-spacing: -2px; margin-bottom: 30px; font-family: "SF Mono","Menlo","Consolas",monospace;
 }
-.day-detail .mini-task:last-child { border-bottom: none; }
-.day-detail .mini-task .mini-title { font-weight: 500; }
-.day-detail .mini-task .mini-desc {
-    font-size: 12px; color: var(--text-secondary); margin-top: 2px;
+.focus-overlay .focus-presets { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; justify-content: center; }
+.focus-overlay .focus-preset {
+    padding: 10px 18px; border: 1px solid rgba(255,255,255,0.3); border-radius: 20px;
+    background: transparent; color: #fff; font-size: 14px; cursor: pointer;
+    font-family: inherit; transition: all var(--transition);
 }
-.day-detail .mini-task .mini-owner {
-    font-size: 11px; color: #8944d6; font-weight: 500;
+.focus-overlay .focus-preset:hover, .focus-overlay .focus-preset.sel { background: rgba(255,255,255,0.15); border-color: #fff; }
+.focus-overlay .focus-actions { display: flex; gap: 10px; }
+.focus-overlay .focus-btn-action {
+    padding: 10px 30px; border-radius: 20px; font-size: 15px; font-weight: 600;
+    cursor: pointer; font-family: inherit; border: none; transition: all var(--transition);
 }
-.day-detail .btn-close {
-    display: block;
-    width: 100%;
-    margin-top: 14px;
-    padding: 9px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    font-size: 13px;
-    font-family: inherit;
-}
-.day-detail .empty { color: var(--text-secondary); font-size: 13px; text-align: center; padding: 18px 0; }
+.focus-overlay .focus-btn-start { background: var(--success); color: #fff; }
+.focus-overlay .focus-btn-start:hover { background: #2db84d; }
+.focus-overlay .focus-btn-exit { background: transparent; color: rgba(255,255,255,0.5); border: 1px solid rgba(255,255,255,0.2); }
+.focus-overlay .focus-btn-exit:hover { color: #fff; border-color: #fff; }
+.focus-overlay .focus-btn-pause { background: var(--warning); color: #fff; }
+.focus-finished { display: none; text-align: center; }
+.focus-finished.show { display: block; }
+.focus-finished .finish-icon { font-size: 80px; animation: bounce 0.6s ease infinite alternate; }
+@keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-20px); } }
+.focus-finished .finish-text { font-size: 24px; font-weight: 700; margin: 16px 0; }
 
-/* 空状态 */
-.empty-state {
-    text-align: center;
-    padding: 40px 20px;
-    color: var(--text-secondary);
+/* ============ 弹窗 ============ */
+.modal-overlay {
+    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.45); z-index: 200; justify-content: center;
+    align-items: center; padding: 20px;
 }
-.empty-state .icon { font-size: 44px; margin-bottom: 10px; }
-.empty-state p { font-size: 14px; }
+.modal-overlay.active { display: flex; }
+.modal-box {
+    background: var(--card); border-radius: var(--radius); padding: 24px 20px;
+    max-width: 380px; width: 100%; box-shadow: var(--shadow-lg); text-align: center;
+}
+.modal-box h4 { font-size: 16px; margin-bottom: 6px; }
+.modal-box .modal-sub { font-size: 12px; color: var(--text2); margin-bottom: 14px; }
+.modal-box input {
+    width: 100%; padding: 10px 14px; border: 1px solid var(--border);
+    border-radius: 8px; font-size: 15px; font-family: inherit; outline: none;
+    background: #fafafa; text-align: center;
+}
+.modal-box input:focus { border-color: var(--primary); background: #fff; }
+.modal-box .modal-err { color: var(--danger); font-size: 11px; min-height: 16px; margin-top: 4px; }
+.modal-box .modal-btns { display: flex; gap: 8px; margin-top: 12px; }
+.modal-box .modal-btns button {
+    flex: 1; padding: 10px; border-radius: 8px; font-size: 14px; font-weight: 600;
+    cursor: pointer; font-family: inherit; border: 1px solid var(--border);
+    background: #f5f5f7; color: var(--text); transition: all var(--transition);
+}
+.modal-box .modal-btns .btn-confirm { background: var(--primary); color: #fff; border: none; }
+.modal-box .modal-btns .btn-danger { background: var(--danger); color: #fff; border: none; }
 
-/* 响应式 */
+/* ============ Toast 激励弹窗 ============ */
+.toast-container {
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+    z-index: 400; display: flex; flex-direction: column; gap: 8px;
+    pointer-events: none; align-items: center;
+}
+.toast {
+    background: #1d1d1f; color: #fff; padding: 12px 24px; border-radius: 20px;
+    font-size: 14px; font-weight: 600; pointer-events: auto;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2); animation: toastIn 0.4s ease, toastOut 0.4s ease 2.2s forwards;
+    text-align: center; max-width: 90vw;
+}
+.toast.motivation { background: linear-gradient(135deg, #667eea, #764ba2); }
+.toast.streak { background: linear-gradient(135deg, #f093fb, #f5576c); }
+@keyframes toastIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes toastOut { from { opacity: 1; } to { opacity: 0; transform: translateY(-10px); } }
+
+/* ============ 响应式 ============ */
 @media (max-width: 500px) {
     .add-form .row { flex-direction: column; }
     .add-form input[type="datetime-local"] { max-width: none; }
     .toolbar { justify-content: center; }
     .task-item { flex-wrap: wrap; }
-    .deadline-badge { margin-left: 30px; }
     .topbar { justify-content: center; }
     .topbar .topbar-actions { margin-left: 0; }
+    .focus-overlay .focus-timer { font-size: 60px; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
 }
 </style>
 </head>
 <body>
+
+<!-- ==================== Toast 容器 ==================== -->
+<div class="toast-container" id="toastContainer"></div>
 
 <!-- ==================== 登录/注册页 ==================== -->
 <div class="auth-page" id="authPage">
@@ -742,94 +494,79 @@ header .subtitle { color: var(--text-secondary); font-size: 13px; margin-top: 2p
         <div class="logo">📋</div>
         <h2 id="authTitle">欢迎回来</h2>
         <p class="sub" id="authSub">请登录你的账号</p>
-
-        <!-- 已有用户快速选择 -->
         <div class="user-quick-list" id="quickUserList"></div>
-
         <div id="authFields">
-            <div class="field">
-                <label>👤 用户名</label>
-                <input type="text" id="authUsername" placeholder="请输入用户名" maxlength="20" autocomplete="off">
-            </div>
-            <div class="field" id="confirmPwdField" style="display:none;">
-                <label>🔑 确认密码</label>
-                <input type="password" id="authConfirmPwd" placeholder="请再次输入密码" maxlength="30">
-            </div>
-            <div class="field">
-                <label>🔒 密码</label>
-                <input type="password" id="authPassword" placeholder="请输入密码" maxlength="30">
-            </div>
+            <div class="field"><label>👤 用户名</label><input type="text" id="authUsername" placeholder="请输入用户名" maxlength="20" autocomplete="off"></div>
+            <div class="field" id="confirmPwdField" style="display:none;"><label>🔑 确认密码</label><input type="password" id="authConfirmPwd" placeholder="请再次输入密码" maxlength="30"></div>
+            <div class="field"><label>🔒 密码</label><input type="password" id="authPassword" placeholder="请输入密码" maxlength="30"></div>
             <div class="err" id="authErr"></div>
             <button class="btn-primary" id="authBtn" onclick="handleAuth()">登 录</button>
         </div>
-
-        <div class="switch-link">
-            <span id="switchText">还没有账号？</span>
-            <a id="switchLink" onclick="toggleAuthMode()">注册新账号</a>
-        </div>
+        <div class="switch-link"><span id="switchText">还没有账号？</span> <a id="switchLink" onclick="toggleAuthMode()">注册新账号</a></div>
     </div>
 </div>
 
 <!-- ==================== 主应用 ==================== -->
 <div class="app" id="mainApp">
     <div class="app-inner">
-
-        <!-- 顶部用户栏 -->
+        <!-- 顶栏 -->
         <div class="topbar">
             <div class="current-user">
                 <span class="user-avatar" id="myAvatar"></span>
                 <span id="myName"></span>
             </div>
-            <span style="font-size:12px;color:var(--text-secondary);" id="taskSummary"></span>
+            <span style="font-size:11px;color:var(--text2);" id="taskSummary"></span>
             <div class="topbar-actions">
                 <button class="btn-sm" onclick="goToRegister()">＋ 添加用户</button>
-                <button class="btn-sm danger" onclick="switchUser()">🔄 切换账号</button>
+                <button class="btn-sm danger" onclick="switchUser()">🔄 切换</button>
             </div>
         </div>
 
-        <!-- 标题 -->
-        <header>
-            <h1>📋 TODO LIST</h1>
-            <p class="subtitle">多人共享 · 互相监督 · 优先级排序 · 日历视图</p>
-        </header>
-
-        <!-- 工具栏 -->
-        <div class="toolbar">
-            <button class="btn active" id="btnListView" onclick="switchView('list')">
-                <span class="icon">📋</span> 列表
-            </button>
-            <button class="btn" id="btnCalendarView" onclick="switchView('calendar')">
-                <span class="icon">📅</span> 日历
-            </button>
-            <button class="btn" id="btnClearDone" onclick="clearCompleted()" style="margin-left:auto;">
-                <span class="icon">🧹</span> 清除已完成
-            </button>
-        </div>
-
-        <!-- 用户筛选 -->
-        <div class="user-filter-chips" id="filterChips"></div>
-
-        <!-- 添加表单 -->
-        <div class="add-form" id="addForm">
-            <div class="row">
-                <input type="text" id="inputTitle" placeholder="📝 待办标题（必填）" maxlength="100" autocomplete="off">
-                <textarea id="inputDesc" placeholder="💬 描述（选填）" rows="1" maxlength="200"></textarea>
-                <input type="datetime-local" id="inputDeadline">
-                <button class="btn-add" onclick="addTask()">＋ 添加</button>
+        <!-- ===== 清单面板 ===== -->
+        <div class="panel active" id="panelList">
+            <div class="toolbar">
+                <button class="btn active" id="btnAutoSort" onclick="toggleSortMode('auto')">📊 自动排序</button>
+                <button class="btn" id="btnManualSort" onclick="toggleSortMode('manual')">⋮⋮ 手动排序</button>
+                <button class="btn" id="btnLearningMode" onclick="toggleLearningMode()">🎯 学习模式</button>
+                <button class="btn" id="btnClearDone" onclick="clearMyCompleted()" style="margin-left:auto;">🧹 清除已完成</button>
             </div>
-        </div>
-
-        <!-- 列表视图 -->
-        <div class="task-list-view" id="listView">
+            <div class="filter-chips" id="filterChips"></div>
+            <div class="add-form" id="addForm">
+                <div class="row">
+                    <input type="text" id="inputTitle" placeholder="📝 待办标题" maxlength="100" autocomplete="off" style="flex:2;min-width:140px;">
+                    <input type="datetime-local" id="inputDeadline">
+                    <select id="inputTag">
+                        <option value="">🏷 标签</option>
+                        <option value="学习">📚 学习</option>
+                        <option value="作业">📝 作业</option>
+                        <option value="考试">📖 考试</option>
+                        <option value="项目">💻 项目</option>
+                        <option value="其他">📌 其他</option>
+                    </select>
+                    <button class="btn-add" onclick="addTask()">＋ 添加</button>
+                </div>
+                <div class="row-2">
+                    <input type="text" id="inputDesc" placeholder="💬 描述（选填）" maxlength="200" style="flex:1;min-width:100px;">
+                    <select id="inputVisibility">
+                        <option value="public">🌐 公开</option>
+                        <option value="private">🔒 私人</option>
+                    </select>
+                    <label style="font-size:11px;display:flex;align-items:center;gap:3px;white-space:nowrap;cursor:pointer;">
+                        <input type="checkbox" id="inputIsDaily"> 📅 每日任务
+                    </label>
+                    <select id="inputGroup" style="max-width:110px;"><option value="">👤 个人任务</option></select>
+                </div>
+            </div>
             <div class="task-list" id="taskList"></div>
-            <div class="empty-state" id="emptyState">
-                <div class="icon">📭</div>
-                <p>还没有待办事项<br>在上方添加一个吧 ✨</p>
-            </div>
+            <div class="empty-state" id="emptyState"><div class="icon">📭</div><p>还没有待办事项<br>在上方添加一个吧 ✨</p></div>
         </div>
 
-        <!-- 日历视图 -->
-        <div class="calendar-view" id="calendarView">
+        <!-- ===== 日历面板 ===== -->
+        <div class="panel" id="panelCalendar">
+            <div class="toolbar" style="margin-bottom:8px;">
+                <button class="btn active" id="btnCalMy" onclick="setCalendarFilter('my')">⭐ 我的</button>
+                <button class="btn" id="btnCalGroup" onclick="setCalendarFilter('group')">👥 小组</button>
+            </div>
             <div class="calendar-header">
                 <button class="nav-btn" onclick="navigateMonth(-1)">◀</button>
                 <span class="month-label" id="monthLabel"></span>
@@ -838,14 +575,88 @@ header .subtitle { color: var(--text-secondary); font-size: 13px; margin-top: 2p
             <div class="calendar-grid" id="calendarGrid"></div>
         </div>
 
-        <!-- 日历日详情 -->
-        <div class="day-detail" id="dayDetail" onclick="closeDayDetail(event)">
-            <div class="panel" onclick="event.stopPropagation()">
-                <h4 id="dayDetailTitle"></h4>
-                <div id="dayDetailContent"></div>
-                <button class="btn-close" onclick="closeDayDetail()">关闭</button>
+        <!-- ===== 小组面板 ===== -->
+        <div class="panel" id="panelGroup">
+            <div class="toolbar">
+                <button class="btn" onclick="showCreateGroup()">＋ 创建小组</button>
+                <button class="btn" onclick="showJoinGroup()">🔗 加入小组</button>
+            </div>
+            <div class="group-list" id="groupList"></div>
+            <div class="empty-state" id="groupEmpty"><div class="icon">👥</div><p>还没有加入任何小组<br>创建或加入一个吧</p></div>
+        </div>
+
+        <!-- ===== 统计面板 ===== -->
+        <div class="panel" id="panelStats">
+            <div class="toolbar">
+                <button class="btn active" id="btnLbPersonal" onclick="switchLeaderboard('personal')">👤 个人排行</button>
+                <button class="btn" id="btnLbGroup" onclick="switchLeaderboard('group')">👥 小组排行</button>
+                <button class="btn" onclick="doCheckin()" style="margin-left:auto;">✅ 今日打卡</button>
+            </div>
+            <div class="stats-grid" id="statsGrid"></div>
+            <div class="leaderboard" id="leaderboardSection"><h4 id="lbTitle">🏆 本周排行榜</h4><div id="lbContent"></div></div>
+            <div class="summary-section">
+                <h4>📝 每日总结 <span style="font-size:11px;color:var(--text2);" id="summaryDate"></span></h4>
+                <textarea id="summaryInput" placeholder="写下今天的总结...（公开总结可分享到小组）"></textarea>
+                <div class="summary-actions">
+                    <select id="summaryVisibility"><option value="public">🌐 公开</option><option value="private">🔒 私人</option></select>
+                    <button class="btn" onclick="saveSummary()">💾 保存总结</button>
+                    <button class="btn" onclick="shareSummaryToGroups()">📤 分享到小组</button>
+                </div>
+            </div>
+            <div class="summary-section">
+                <h4 style="cursor:pointer;display:flex;align-items:center;gap:6px;" onclick="toggleSummaryHistory()">📜 总结历史 <span style="font-size:12px;color:var(--text2);" id="summaryHistoryToggle">▶ 展开</span></h4>
+                <div id="summaryHistoryList" style="display:none;max-height:300px;overflow-y:auto;margin-top:8px;"></div>
+            </div>
+            <div class="summary-section">
+                <h4>🎯 每日目标</h4>
+                <div style="display:flex;gap:6px;align-items:center;">
+                    <span style="font-size:13px;">每天完成</span>
+                    <input type="number" id="dailyGoalInput" value="3" min="1" max="50" style="width:60px;padding:6px;border:1px solid var(--border);border-radius:6px;text-align:center;font-size:14px;font-family:inherit;">
+                    <span style="font-size:13px;">个任务</span>
+                    <button class="btn" onclick="setDailyGoal()">💾 保存目标</button>
+                </div>
             </div>
         </div>
+    </div>
+
+    <!-- 底部导航 -->
+    <div class="tab-nav">
+        <button class="tab-btn active" data-tab="list" onclick="switchTab('list')"><span class="tab-icon">📋</span>清单</button>
+        <button class="tab-btn" data-tab="calendar" onclick="switchTab('calendar')"><span class="tab-icon">📅</span>日历</button>
+        <button class="tab-btn" data-tab="group" onclick="switchTab('group')"><span class="tab-icon">👥</span>小组</button>
+        <button class="tab-btn" data-tab="stats" onclick="switchTab('stats')"><span class="tab-icon">📊</span>统计</button>
+    </div>
+</div>
+
+<!-- ==================== 专注模式 ==================== -->
+<div class="focus-overlay" id="focusOverlay">
+    <div id="focusSetup">
+        <div class="focus-title" id="focusTaskTitle"></div>
+        <div class="focus-subtitle">选择专注时长</div>
+        <div class="focus-presets">
+            <button class="focus-preset sel" data-min="15" onclick="selectFocusPreset(15, this)">15 分钟</button>
+            <button class="focus-preset" data-min="25" onclick="selectFocusPreset(25, this)">25 分钟 🍅</button>
+            <button class="focus-preset" data-min="45" onclick="selectFocusPreset(45, this)">45 分钟</button>
+            <button class="focus-preset" data-min="60" onclick="selectFocusPreset(60, this)">60 分钟</button>
+        </div>
+        <div class="focus-actions">
+            <button class="focus-btn-action focus-btn-start" onclick="startFocus()">▶ 开始专注</button>
+            <button class="focus-btn-action focus-btn-exit" onclick="exitFocus()">✕ 退出</button>
+        </div>
+    </div>
+    <div id="focusRunning" style="display:none;">
+        <div class="focus-title" id="focusRunningTitle"></div>
+        <div class="focus-timer" id="focusTimer">25:00</div>
+        <div class="focus-actions">
+            <button class="focus-btn-action focus-btn-pause" id="focusPauseBtn" onclick="togglePauseFocus()">⏸ 暂停</button>
+            <button class="focus-btn-action focus-btn-exit" onclick="confirmExitFocus()">✕ 退出</button>
+        </div>
+    </div>
+    <div class="focus-finished" id="focusFinished">
+        <div class="finish-icon">🎉</div>
+        <div class="finish-text">专注完成！</div>
+        <div style="font-size:14px;opacity:0.7;margin-bottom:20px;">你专注了 <span id="focusDuration"></span> 分钟</div>
+        <button class="focus-btn-action focus-btn-start" onclick="exitFocus()">👍 太棒了！</button>
     </div>
 </div>
 
@@ -863,71 +674,174 @@ header .subtitle { color: var(--text-secondary); font-size: 13px; margin-top: 2p
     </div>
 </div>
 
+<!-- ==================== 通用确认弹窗 ==================== -->
+<div class="modal-overlay" id="confirmModal">
+    <div class="modal-box">
+        <h4 id="confirmTitle">确认操作</h4>
+        <p class="modal-sub" id="confirmMsg"></p>
+        <div class="modal-btns">
+            <button onclick="closeConfirmModal()">取消</button>
+            <button class="btn-danger" id="confirmBtnOk" onclick="confirmOk()">确认</button>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== 日历日详情 ==================== -->
+<div class="day-detail-overlay" id="dayDetailOverlay" onclick="closeDayDetail(event)">
+    <div class="day-detail-panel" onclick="event.stopPropagation()">
+        <h4 id="dayDetailTitle" style="margin-bottom:10px;"></h4>
+        <div id="dayDetailContent"></div>
+        <button class="btn" onclick="closeDayDetail()" style="width:100%;margin-top:12px;">关闭</button>
+    </div>
+</div>
+
+<!-- ==================== 任务派送弹窗 ==================== -->
+<div class="modal-overlay" id="assignModal">
+    <div class="modal-box" style="max-width:440px;">
+        <h4>📋 派送任务</h4>
+        <p class="modal-sub" id="assignGroupName"></p>
+        <div style="text-align:left;margin-bottom:10px;">
+            <label style="font-size:12px;font-weight:600;color:var(--text2);">选择目标成员（可多选）</label>
+            <div id="assignMemberList" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;"></div>
+        </div>
+        <input type="text" id="assignTitle" placeholder="任务标题" maxlength="100" style="width:100%;margin-bottom:6px;">
+        <input type="text" id="assignDesc" placeholder="描述（选填）" maxlength="200" style="width:100%;margin-bottom:6px;">
+        <input type="datetime-local" id="assignDeadline" style="width:100%;margin-bottom:6px;">
+        <select id="assignTag" style="width:100%;margin-bottom:6px;">
+            <option value="">🏷 标签（选填）</option>
+            <option value="学习">📚 学习</option>
+            <option value="作业">📝 作业</option>
+            <option value="考试">📖 考试</option>
+            <option value="项目">💻 项目</option>
+            <option value="其他">📌 其他</option>
+        </select>
+        <div class="modal-err" id="assignErr"></div>
+        <div class="modal-btns">
+            <button onclick="closeAssignModal()">取消</button>
+            <button class="btn-confirm" onclick="confirmAssign()">派送</button>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== 小组创建/加入弹窗 ==================== -->
+<div class="modal-overlay" id="groupModal">
+    <div class="modal-box">
+        <h4 id="groupModalTitle">创建小组</h4>
+        <input type="text" id="groupNameInput" placeholder="小组名称" maxlength="30">
+        <div class="modal-err" id="groupModalErr"></div>
+        <div class="modal-btns">
+            <button onclick="closeGroupModal()">取消</button>
+            <button class="btn-confirm" id="groupModalConfirm" onclick="confirmGroupAction()">确认</button>
+        </div>
+    </div>
+</div>
+
 <script>
 // ==================== 工具函数 ====================
 function escapeHtml(str) {
     const div = document.createElement('div');
-    div.textContent = str;
+    div.textContent = str || '';
     return div.innerHTML;
 }
 
 function formatTime(isoStr) {
     if (!isoStr) return '';
     const d = new Date(isoStr);
-    const m = d.getMonth() + 1;
-    const day = d.getDate();
-    const h = String(d.getHours()).padStart(2, '0');
-    const min = String(d.getMinutes()).padStart(2, '0');
-    return `${m}/${day} ${h}:${min}`;
+    return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
 }
 
-// API 请求封装
+function todayStr() {
+    return new Date().toISOString().slice(0, 10);
+}
+
+function getUserColor(username) {
+    const colors = ['#0071e3','#ff9500','#34c759','#ff3b30','#8944d6','#0077b6','#e67e22','#2ecc71'];
+    let hash = 0;
+    for (let i = 0; i < username.length; i++) hash = ((hash << 5) - hash) + username.charCodeAt(i);
+    return colors[Math.abs(hash) % colors.length];
+}
+
+// API
 async function api(path, options = {}) {
-    const res = await fetch(path, {
-        headers: { 'Content-Type': 'application/json' },
-        ...options,
-    });
+    const res = await fetch(path, { headers: { 'Content-Type': 'application/json' }, ...options });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || '请求失败');
     return data;
 }
 
+// Toast
+const MOTIVATIONS = [
+    '🎉 太棒了！又完成了一项！',
+    '🔥 连续打卡中，保持下去！',
+    '💪 今天离目标又近了一步！',
+    '⭐ 优秀！你是最棒的！',
+    '🏆 胜利在望，继续加油！',
+    '🚀 效率爆表！继续冲！',
+    '✨ 每一个完成的任务都是成长！',
+    '💎 坚持就是胜利！',
+    '🌟 今天状态不错！',
+    '🎯 目标就在眼前！',
+];
+
+function showToast(msg, type) {
+    const container = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = 'toast ' + (type || '');
+    toast.textContent = msg;
+    container.appendChild(toast);
+    setTimeout(() => { if (toast.parentNode) toast.remove(); }, 2800);
+}
+
+function randomMotivation() {
+    return MOTIVATIONS[Math.floor(Math.random() * MOTIVATIONS.length)];
+}
+
 // ==================== 全局状态 ====================
 const CURRENT_USER_KEY = 'todo_current_user';
-
 let currentUser = null;
 let allUsers = [];
 let allTasks = [];
+let allGroups = [];
+let sortMode = 'auto';      // 'auto' | 'manual'
+let learningMode = false;
+let currentTab = 'list';
+let filterOwner = null;     // null = 自己
+let filterTag = 'all';
+let calendarFilter = 'my'; // 'my' | 'group'
+let calendarYear, calendarMonth;
+let focusMinutes = 25;
+let focusSecondsLeft = 0;
+let focusInterval = null;
+let focusPaused = false;
+let focusTaskId = null;
+let leaderboardType = 'personal';
+let groupModalMode = 'create'; // 'create' | 'join'
 
-function isMyTask(task) {
-    return task.owner === currentUser;
+function isMyTask(task) { return task.owner === currentUser; }
+
+// 数据加载
+async function loadUsers() { try { allUsers = await api('/api/users'); } catch (e) { allUsers = []; } }
+async function loadTasks() { try { allTasks = await api('/api/tasks'); } catch (e) { allTasks = []; } }
+async function loadGroups() { try { allGroups = await api('/api/groups'); } catch (e) { allGroups = []; } }
+
+async function refreshAll() {
+    await loadUsers();
+    await loadTasks();
+    await loadGroups();
 }
 
-// 从服务器加载数据
-async function loadUsers() {
-    try { allUsers = await api('/api/users'); } catch (e) { allUsers = []; }
-}
-
-async function loadTasks() {
-    try { allTasks = await api('/api/tasks'); } catch (e) { allTasks = []; }
-}
-
-// ==================== 登录/注册 ====================
+// ==================== 鉴权 ====================
 let authMode = 'login';
 
 function renderQuickUsers() {
     const container = document.getElementById('quickUserList');
     if (allUsers.length === 0) { container.innerHTML = ''; return; }
     const colors = ['#0071e3','#ff9500','#34c759','#ff3b30','#8944d6','#0077b6','#e67e22','#2ecc71'];
-    container.innerHTML = allUsers.map((u, i) => {
-        const color = colors[i % colors.length];
-        const initial = u.username.charAt(0).toUpperCase();
-        return `
+    container.innerHTML = allUsers.map((u, i) => `
         <button class="user-quick-chip" onclick="quickLogin('${escapeHtml(u.username)}')" title="点击登录">
-            <span class="avatar" style="background:${color};">${initial}</span>
+            <span class="avatar" style="background:${colors[i%colors.length]};">${u.username.charAt(0).toUpperCase()}</span>
             ${escapeHtml(u.username)}
-        </button>`;
-    }).join('');
+        </button>`).join('');
 }
 
 function quickLogin(username) {
@@ -952,7 +866,6 @@ async function handleAuth() {
     const username = document.getElementById('authUsername').value.trim();
     const password = document.getElementById('authPassword').value;
     const errEl = document.getElementById('authErr');
-
     if (!username) { errEl.textContent = '请输入用户名'; return; }
     if (username.length < 2) { errEl.textContent = '用户名至少2个字符'; return; }
     if (!password) { errEl.textContent = '请输入密码'; return; }
@@ -960,21 +873,14 @@ async function handleAuth() {
 
     const btn = document.getElementById('authBtn');
     btn.disabled = true; btn.textContent = '处理中...';
-
     try {
         if (authMode === 'register') {
             const confirmPwd = document.getElementById('authConfirmPwd').value;
-            if (password !== confirmPwd) { errEl.textContent = '两次密码不一致'; return; }
-            await api('/api/register', {
-                method: 'POST',
-                body: JSON.stringify({ username, password }),
-            });
+            if (password !== confirmPwd) { errEl.textContent = '两次密码不一致'; btn.disabled = false; btn.textContent = '注 册'; return; }
+            await api('/api/register', { method: 'POST', body: JSON.stringify({ username, password }) });
             loginUser(username);
         } else {
-            await api('/api/login', {
-                method: 'POST',
-                body: JSON.stringify({ username, password }),
-            });
+            await api('/api/login', { method: 'POST', body: JSON.stringify({ username, password }) });
             loginUser(username);
         }
     } catch (e) {
@@ -1014,255 +920,154 @@ async function showMainApp() {
     document.getElementById('myName').textContent = currentUser;
     document.getElementById('myAvatar').textContent = currentUser.charAt(0).toUpperCase();
     document.getElementById('myAvatar').style.background = getUserColor(currentUser);
-    await loadUsers();
-    await loadTasks();
-    resetAppState();
-    renderAll();
-    renderFilterChips();
-    document.getElementById('inputTitle').focus();
-}
-
-function getUserColor(username) {
-    const colors = ['#0071e3','#ff9500','#34c759','#ff3b30','#8944d6','#0077b6','#e67e22','#2ecc71'];
-    let hash = 0;
-    for (let i = 0; i < username.length; i++) hash = ((hash << 5) - hash) + username.charCodeAt(i);
-    return colors[Math.abs(hash) % colors.length];
-}
-
-let manualOrder = false;
-let currentView = 'list';
-let calendarYear, calendarMonth;
-let filterOwner = 'all';
-
-function resetAppState() {
-    manualOrder = false;
-    currentView = 'list';
-    filterOwner = 'all';
+    await refreshAll();
+    filterOwner = currentUser;
+    sortMode = 'auto';
+    learningMode = false;
+    currentTab = 'list';
     const now = new Date();
     calendarYear = now.getFullYear();
     calendarMonth = now.getMonth();
-    document.getElementById('listView').classList.remove('hidden');
-    document.getElementById('calendarView').classList.remove('active');
-    document.getElementById('addForm').classList.remove('hidden');
-    document.getElementById('btnListView').classList.add('active');
-    document.getElementById('btnCalendarView').classList.remove('active');
+    await loadGroupOptions();
+    renderFilterChips();
+    switchTab('list');
+    document.getElementById('inputTitle').focus();
+    // 每日首次登录激励
+    const lastLogin = localStorage.getItem('todo_last_login_date');
+    if (lastLogin !== todayStr()) {
+        showToast('💪 新的一天，加油！', 'motivation');
+        localStorage.setItem('todo_last_login_date', todayStr());
+    }
+}
+
+async function loadGroupOptions() {
+    const sel = document.getElementById('inputGroup');
+    const myGroups = allGroups.filter(g => g.members.find(m => m.username === currentUser));
+    sel.innerHTML = '<option value="">👤 个人任务</option>' +
+        myGroups.map(g => `<option value="${g.id}">👥 ${escapeHtml(g.name)}</option>`).join('');
+}
+
+// ==================== 标签切换 ====================
+function switchTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('panel' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+    document.querySelector(`.tab-btn[data-tab="${tab}"]`).classList.add('active');
+
+    if (tab === 'list') renderList();
+    else if (tab === 'calendar') renderCalendar();
+    else if (tab === 'group') renderGroups();
+    else if (tab === 'stats') renderStats();
 }
 
 // ==================== 筛选 ====================
+function getVisibleUsers() {
+    // 用户可以看到的人：自己 + 同组其他人的公开任务
+    const visible = new Set([currentUser]);
+    allGroups.forEach(g => {
+        const isMember = g.members.find(m => m.username === currentUser);
+        if (isMember) {
+            g.members.forEach(m => visible.add(m.username));
+        }
+    });
+    return visible;
+}
+
 function getFilteredTasks() {
-    if (filterOwner === 'all') return [...allTasks];
-    return allTasks.filter(t => t.owner === filterOwner);
+    let tasks = [...allTasks];
+    const visibleUsers = getVisibleUsers();
+    // 只能看到可见用户的非私人任务（自己的私人任务可见）
+    tasks = tasks.filter(t => {
+        if (t.owner === currentUser) return true;           // 自己的都能看
+        if (!visibleUsers.has(t.owner)) return false;       // 非同组看不到
+        if (t.visibility === 'private') return false;       // 私人任务看不到
+        return true;
+    });
+    // 默认只看自己的
+    if (filterOwner) {
+        tasks = tasks.filter(t => t.owner === filterOwner);
+    }
+    // 标签筛选
+    if (filterTag !== 'all') {
+        tasks = tasks.filter(t => t.tags && t.tags.includes(filterTag));
+    }
+    // 学习模式：只显示未完成的高优先级任务
+    if (learningMode && currentTab === 'list') {
+        tasks = tasks.filter(t => t.status !== 'done' && t.priorityScore >= 25);
+    }
+    return tasks;
 }
 
 function renderFilterChips() {
-    const owners = [...new Set(allTasks.map(t => t.owner))];
+    const visibleUsers = getVisibleUsers();
+    const owners = [...new Set(allTasks.map(t => t.owner))].filter(o => visibleUsers.has(o));
+    const allTags = [...new Set(allTasks.flatMap(t => t.tags || []))];
     const container = document.getElementById('filterChips');
-    if (owners.length === 0) { container.innerHTML = ''; return; }
-    let html = `<button class="filter-chip ${filterOwner === 'all' ? 'active' : ''}" onclick="setFilter('all')">👥 全部</button>`;
-    owners.forEach(owner => {
-        const isMe = owner === currentUser;
-        html += `<button class="filter-chip ${filterOwner === owner ? 'active' : ''}" onclick="setFilter('${escapeHtml(owner)}')">${isMe ? '⭐ ' : ''}${escapeHtml(owner)}</button>`;
+
+    let html = '';
+    // 用户筛选
+    html += `<button class="chip ${filterOwner === currentUser ? 'active' : ''}" onclick="setFilter('${escapeHtml(currentUser)}')">⭐ 我的</button>`;
+    if (owners.length > 1) {
+        html += `<button class="chip ${filterOwner === null ? 'active' : ''}" onclick="setFilter(null)">👥 可见</button>`;
+    }
+    owners.filter(o => o !== currentUser).forEach(owner => {
+        html += `<button class="chip ${filterOwner === owner ? 'active' : ''}" onclick="setFilter('${escapeHtml(owner)}')">👤 ${escapeHtml(owner)}</button>`;
     });
+    if (allTags.length > 0) html += '<span style="color:var(--border);margin:0 4px;">|</span>';
+    // 标签筛选
+    html += `<button class="chip ${filterTag === 'all' ? 'active' : ''}" onclick="setTagFilter('all')">🏷 全部</button>`;
+    allTags.forEach(tag => {
+        html += `<button class="chip ${filterTag === tag ? 'active' : ''}" onclick="setTagFilter('${escapeHtml(tag)}')">${escapeHtml(tag)}</button>`;
+    });
+
     container.innerHTML = html;
 }
 
-function setFilter(owner) { filterOwner = owner; renderFilterChips(); renderAll(); }
+function setFilter(owner) {
+    filterOwner = owner;
+    renderFilterChips();
+    renderAll();
+}
+
+function setTagFilter(tag) {
+    filterTag = tag;
+    renderFilterChips();
+    renderAll();
+}
+
+function toggleSortMode(mode) {
+    sortMode = mode;
+    document.getElementById('btnAutoSort').classList.toggle('active', mode === 'auto');
+    document.getElementById('btnManualSort').classList.toggle('active', mode === 'manual');
+    renderList();
+}
+
+function toggleLearningMode() {
+    learningMode = !learningMode;
+    document.getElementById('btnLearningMode').classList.toggle('active', learningMode);
+    if (learningMode) showToast('🎯 学习模式开启，只显示高优先级任务', 'motivation');
+    renderAll();
+}
 
 // ==================== 排序 ====================
 function getSortedTasks() {
     const filtered = getFilteredTasks();
-    if (manualOrder) return [...filtered].sort((a, b) => a.sortOrder - b.sortOrder);
-    const active = filtered.filter(t => !t.completed);
-    const done = filtered.filter(t => t.completed);
-    active.sort((a, b) => {
-        if (!a.deadline && !b.deadline) return 0;
-        if (!a.deadline) return 1;
-        if (!b.deadline) return -1;
-        return new Date(a.deadline) - new Date(b.deadline);
-    });
-    return [...active, ...done];
-}
-
-// ==================== 任务操作（API） ====================
-async function addTask() {
-    const titleEl = document.getElementById('inputTitle');
-    const descEl = document.getElementById('inputDesc');
-    const deadlineEl = document.getElementById('inputDeadline');
-
-    const title = titleEl.value.trim();
-    if (!title) { titleEl.focus(); return; }
-
-    const body = {
-        title,
-        desc: descEl.value.trim(),
-        deadline: deadlineEl.value || null,
-        owner: currentUser,
-    };
-
-    try {
-        await api('/api/tasks', { method: 'POST', body: JSON.stringify(body) });
-        titleEl.value = '';
-        descEl.value = '';
-        deadlineEl.value = '';
-        titleEl.focus();
-        manualOrder = false;
-        await loadTasks();
-        renderFilterChips();
-        renderAll();
-    } catch (e) {
-        alert('添加失败：' + e.message);
+    if (sortMode === 'manual') {
+        return [...filtered].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
     }
-}
-
-const pendingAction = { type: null, taskId: null };
-
-function tryToggleTask(id) {
-    const task = allTasks.find(t => t.id === id);
-    if (!task) return;
-    if (isMyTask(task)) { doToggleTask(id); }
-    else { pendingAction.type = 'toggle'; pendingAction.taskId = id; showVerifyModal(task); }
-}
-
-async function doToggleTask(id) {
-    const task = allTasks.find(t => t.id === id);
-    if (!task) return;
-    const completed = !task.completed;
-    const completedAt = completed ? new Date().toISOString() : null;
-    try {
-        await api(`/api/tasks/${id}`, {
-            method: 'PUT',
-            body: JSON.stringify({ completed, completedAt }),
-        });
-        await loadTasks();
-        renderAll();
-    } catch (e) { alert('操作失败：' + e.message); }
-}
-
-function tryDeleteTask(id) {
-    const task = allTasks.find(t => t.id === id);
-    if (!task) return;
-    if (isMyTask(task)) { doDeleteTask(id); }
-    else { pendingAction.type = 'delete'; pendingAction.taskId = id; showVerifyModal(task); }
-}
-
-async function doDeleteTask(id) {
-    if (!confirm('确定删除这条待办吗？')) return;
-    try {
-        await api(`/api/tasks/${id}`, { method: 'DELETE' });
-        await loadTasks();
-        renderFilterChips();
-        renderAll();
-    } catch (e) { alert('删除失败：' + e.message); }
-}
-
-async function clearCompleted() {
-    const myDone = allTasks.filter(t => t.completed && isMyTask(t));
-    const otherDone = allTasks.filter(t => t.completed && !isMyTask(t));
-    const total = myDone.length + otherDone.length;
-    if (total === 0) { alert('没有已完成的任务'); return; }
-
-    let msg = `共 ${total} 条已完成任务。\n`;
-    if (myDone.length > 0) msg += `\n✅ 你的 ${myDone.length} 条将被直接删除。`;
-    if (otherDone.length > 0) msg += `\n🔒 他人的 ${otherDone.length} 条需要逐个验证密码。`;
-    if (!confirm(msg)) return;
-
-    // 删除自己的
-    for (const t of myDone) {
-        await api(`/api/tasks/${t.id}`, { method: 'DELETE' });
-    }
-    await loadTasks();
-
-    if (otherDone.length > 0) {
-        deleteOtherTasksOneByOne([...otherDone]);
-    } else {
-        renderFilterChips();
-        renderAll();
-    }
-}
-
-async function deleteOtherTasksOneByOne(queue) {
-    if (queue.length === 0) {
-        await loadTasks();
-        renderFilterChips();
-        renderAll();
-        return;
-    }
-    const task = queue[0];
-    pendingAction.type = 'delete';
-    pendingAction.taskId = task.id;
-    pendingAction.deleteQueue = queue;
-    showVerifyModal(task);
-}
-
-function tryDragDrop(draggedId) {
-    const task = allTasks.find(t => t.id === draggedId);
-    if (!task) return;
-    if (isMyTask(task)) return true;
-    pendingAction.type = 'drag';
-    pendingAction.taskId = draggedId;
-    showVerifyModal(task);
-    return false;
-}
-
-// ==================== 密码验证弹窗 ====================
-function showVerifyModal(task) {
-    document.getElementById('verifyMsg').textContent = `「${task.owner}」的任务需要验证其密码才能操作`;
-    document.getElementById('verifyPwd').value = '';
-    document.getElementById('verifyErr').textContent = '';
-    document.getElementById('verifyModal').classList.add('active');
-    setTimeout(() => document.getElementById('verifyPwd').focus(), 100);
-}
-
-function closeVerifyModal() {
-    document.getElementById('verifyModal').classList.remove('active');
-    pendingAction.type = null; pendingAction.taskId = null; pendingAction.deleteQueue = null;
-}
-
-async function confirmVerify() {
-    const pwd = document.getElementById('verifyPwd').value;
-    const task = allTasks.find(t => t.id === pendingAction.taskId);
-    if (!task) { closeVerifyModal(); return; }
-
-    const btn = document.querySelector('#verifyModal .btn-confirm');
-    btn.disabled = true;
-
-    try {
-        await api('/api/verify-password', {
-            method: 'POST',
-            body: JSON.stringify({ username: task.owner, password: pwd }),
-        });
-    } catch (e) {
-        document.getElementById('verifyErr').textContent = '密码错误，请重试';
-        btn.disabled = false;
-        return;
-    }
-
-    const action = pendingAction.type;
-    const taskId = pendingAction.taskId;
-    const queue = pendingAction.deleteQueue;
-    closeVerifyModal();
-
-    if (action === 'toggle') {
-        await doToggleTask(taskId);
-    } else if (action === 'delete') {
-        if (!confirm('密码验证通过！确定删除这条待办吗？')) return;
-        await api(`/api/tasks/${taskId}`, { method: 'DELETE' });
-        await loadTasks();
-        renderFilterChips();
-        renderAll();
-        if (queue) {
-            const remaining = queue.filter(t => t.id !== taskId);
-            if (remaining.length > 0) deleteOtherTasksOneByOne(remaining);
-        }
-    } else if (action === 'drag') {
-        window._dragVerified = true;
-        setTimeout(() => { window._dragVerified = false; }, 5000);
-    }
+    // 自动模式
+    const active = filtered.filter(t => t.status !== 'done');
+    const inProgress = active.filter(t => t.status === 'in_progress');
+    const todo = active.filter(t => t.status === 'todo');
+    const done = filtered.filter(t => t.status === 'done');
+    const sorter = (a, b) => (b.priorityScore || 0) - (a.priorityScore || 0);
+    return [...inProgress.sort(sorter), ...todo.sort(sorter), ...done];
 }
 
 // ==================== 紧急程度 ====================
-function getUrgency(deadline, completed) {
-    if (completed) return 'done';
+function getUrgency(deadline, status) {
+    if (status === 'done') return 'done';
     if (!deadline) return 'normal';
     const now = new Date();
     const dl = new Date(deadline);
@@ -1277,12 +1082,8 @@ function getUrgency(deadline, completed) {
 function formatDeadline(deadline) {
     if (!deadline) return '';
     const d = new Date(deadline);
-    const month = d.getMonth() + 1;
-    const day = d.getDate();
-    const hour = String(d.getHours()).padStart(2, '0');
-    const min = String(d.getMinutes()).padStart(2, '0');
     const weekdays = ['周日','周一','周二','周三','周四','周五','周六'];
-    return `${month}月${day}日 ${weekdays[d.getDay()]} ${hour}:${min}`;
+    return `${d.getMonth()+1}月${d.getDate()}日 ${weekdays[d.getDay()]} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
 }
 
 function getRemaining(deadline) {
@@ -1291,20 +1092,232 @@ function getRemaining(deadline) {
     const dl = new Date(deadline);
     const diffMs = dl - now;
     if (diffMs < 0) {
-        const abs = Math.abs(diffMs);
-        const days = Math.floor(abs / (1000 * 60 * 60 * 24));
-        const hours = Math.floor(abs / (1000 * 60 * 60));
+        const days = Math.floor(Math.abs(diffMs) / (1000 * 60 * 60 * 24));
+        const hours = Math.floor(Math.abs(diffMs) / (1000 * 60 * 60));
         if (days > 1) return `已过期 ${days} 天`;
         if (hours > 1) return `已过期 ${hours} 小时`;
         return '刚刚过期';
     }
     const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
     const hours = Math.floor(diffMs / (1000 * 60 * 60));
-    const mins = Math.floor(diffMs / (1000 * 60));
     if (days > 1) return `剩余 ${days} 天`;
     if (hours > 1) return `剩余 ${hours} 小时`;
-    if (mins > 1) return `剩余 ${mins} 分钟`;
     return '即将到期';
+}
+
+// ==================== 任务操作 ====================
+async function addTask() {
+    const titleEl = document.getElementById('inputTitle');
+    const title = titleEl.value.trim();
+    if (!title) { titleEl.focus(); return; }
+
+    const tag = document.getElementById('inputTag').value;
+    const tags = tag ? [tag] : [];
+    const body = {
+        title,
+        description: document.getElementById('inputDesc').value.trim(),
+        tags,
+        deadline: document.getElementById('inputDeadline').value || null,
+        visibility: document.getElementById('inputVisibility').value,
+        isDaily: document.getElementById('inputIsDaily').checked,
+        groupId: document.getElementById('inputGroup').value || null,
+        status: 'in_progress',
+        owner: currentUser,
+    };
+
+    try {
+        await api('/api/tasks', { method: 'POST', body: JSON.stringify(body) });
+        titleEl.value = '';
+        document.getElementById('inputDesc').value = '';
+        document.getElementById('inputDeadline').value = '';
+        document.getElementById('inputIsDaily').checked = false;
+        titleEl.focus();
+        await loadTasks();
+        renderFilterChips();
+        renderAll();
+    } catch (e) { alert('添加失败：' + e.message); }
+}
+
+async function updateTaskStatus(id, newStatus) {
+    const task = allTasks.find(t => t.id === id);
+    if (!task) return;
+    if (!isMyTask(task)) { pendingAction = { type: 'status', taskId: id, status: newStatus }; showVerifyModal(task); return; }
+    await doUpdateStatus(id, newStatus);
+}
+
+async function doUpdateStatus(id, newStatus) {
+    try {
+        await api(`/api/tasks/${id}`, { method: 'PUT', body: JSON.stringify({ status: newStatus }) });
+        if (newStatus === 'done') {
+            showToast(randomMotivation(), 'motivation');
+        }
+        await loadTasks();
+        renderAll();
+    } catch (e) { alert('操作失败：' + e.message); }
+}
+
+let pendingAction = { type: null, taskId: null, status: null };
+
+async function tryDeleteTask(id) {
+    const task = allTasks.find(t => t.id === id);
+    if (!task) return;
+    if (isMyTask(task)) {
+        if (confirm('确定删除这条待办吗？')) {
+            await api(`/api/tasks/${id}`, { method: 'DELETE' });
+            await loadTasks();
+            renderFilterChips();
+            renderAll();
+        }
+    } else {
+        pendingAction = { type: 'delete', taskId: id };
+        showVerifyModal(task);
+    }
+}
+
+async function clearMyCompleted() {
+    const myDone = allTasks.filter(t => t.owner === currentUser && t.status === 'done');
+    if (myDone.length === 0) { alert('没有已完成的任务'); return; }
+    if (!confirm(`确定删除你的 ${myDone.length} 条已完成任务吗？`)) return;
+    for (const t of myDone) {
+        await api(`/api/tasks/${t.id}`, { method: 'DELETE' });
+    }
+    await loadTasks();
+    renderFilterChips();
+    renderAll();
+}
+
+function openFocusMode(id) {
+    const task = allTasks.find(t => t.id === id);
+    if (!task) return;
+    focusTaskId = id;
+    focusMinutes = 25;
+    focusSecondsLeft = 0;
+    focusPaused = false;
+    document.getElementById('focusTaskTitle').textContent = '🎯 ' + task.title;
+    document.getElementById('focusRunningTitle').textContent = task.title;
+    document.getElementById('focusOverlay').classList.add('active');
+    document.getElementById('focusSetup').style.display = 'block';
+    document.getElementById('focusRunning').style.display = 'none';
+    document.getElementById('focusFinished').style.display = 'none';
+    document.querySelectorAll('.focus-preset').forEach(b => b.classList.remove('sel'));
+    document.querySelector('.focus-preset[data-min="25"]').classList.add('sel');
+    // 记录专注开始
+    api(`/api/tasks/${id}/focus`, { method: 'POST' }).catch(() => {});
+}
+
+function selectFocusPreset(min, el) {
+    focusMinutes = min;
+    document.querySelectorAll('.focus-preset').forEach(b => b.classList.remove('sel'));
+    el.classList.add('sel');
+}
+
+function startFocus() {
+    document.getElementById('focusSetup').style.display = 'none';
+    document.getElementById('focusRunning').style.display = 'block';
+    focusSecondsLeft = focusMinutes * 60;
+    focusPaused = false;
+    updateFocusTimerDisplay();
+    document.getElementById('focusPauseBtn').textContent = '⏸ 暂停';
+    focusInterval = setInterval(tickFocus, 1000);
+}
+
+function tickFocus() {
+    if (focusPaused) return;
+    focusSecondsLeft--;
+    updateFocusTimerDisplay();
+    if (focusSecondsLeft <= 0) {
+        clearInterval(focusInterval);
+        focusInterval = null;
+        document.getElementById('focusDuration').textContent = focusMinutes;
+        document.getElementById('focusRunning').style.display = 'none';
+        document.getElementById('focusFinished').classList.add('show');
+        document.getElementById('focusFinished').style.display = 'block';
+        showToast('🎉 专注完成！太厉害了！', 'streak');
+    }
+}
+
+function updateFocusTimerDisplay() {
+    const m = Math.floor(focusSecondsLeft / 60);
+    const s = focusSecondsLeft % 60;
+    document.getElementById('focusTimer').textContent = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+}
+
+function togglePauseFocus() {
+    focusPaused = !focusPaused;
+    document.getElementById('focusPauseBtn').textContent = focusPaused ? '▶ 继续' : '⏸ 暂停';
+}
+
+function confirmExitFocus() {
+    if (focusInterval && !focusPaused) {
+        if (!confirm('正在专注中，确定要退出吗？')) return;
+    }
+    exitFocus();
+}
+
+function exitFocus() {
+    if (focusInterval) { clearInterval(focusInterval); focusInterval = null; }
+    focusPaused = false;
+    focusSecondsLeft = 0;
+    document.getElementById('focusOverlay').classList.remove('active');
+    document.getElementById('focusFinished').classList.remove('show');
+}
+
+// ==================== 密码验证 ====================
+function showVerifyModal(task) {
+    document.getElementById('verifyMsg').textContent = `「${task.owner}」的任务需要验证其密码才能操作`;
+    document.getElementById('verifyPwd').value = '';
+    document.getElementById('verifyErr').textContent = '';
+    document.getElementById('verifyModal').classList.add('active');
+    setTimeout(() => document.getElementById('verifyPwd').focus(), 100);
+}
+
+function closeVerifyModal() {
+    document.getElementById('verifyModal').classList.remove('active');
+    pendingAction = { type: null, taskId: null, status: null };
+}
+
+async function confirmVerify() {
+    const pwd = document.getElementById('verifyPwd').value;
+    const task = allTasks.find(t => t.id === pendingAction.taskId);
+    if (!task) { closeVerifyModal(); return; }
+
+    try {
+        await api('/api/verify-password', { method: 'POST', body: JSON.stringify({ username: task.owner, password: pwd }) });
+    } catch (e) {
+        document.getElementById('verifyErr').textContent = '密码错误，请重试';
+        return;
+    }
+
+    const action = pendingAction.type;
+    const taskId = pendingAction.taskId;
+    closeVerifyModal();
+
+    if (action === 'delete') {
+        if (!confirm('密码验证通过！确定删除这条待办吗？')) return;
+        await api(`/api/tasks/${taskId}`, { method: 'DELETE' });
+        await loadTasks();
+        renderFilterChips();
+        renderAll();
+    } else if (action === 'status') {
+        await doUpdateStatus(taskId, pendingAction.status);
+    }
+}
+
+// ==================== 确认弹窗 ====================
+let confirmCallback = null;
+function showConfirm(title, msg, cb) {
+    document.getElementById('confirmTitle').textContent = title;
+    document.getElementById('confirmMsg').textContent = msg;
+    confirmCallback = cb;
+    document.getElementById('confirmModal').classList.add('active');
+}
+function closeConfirmModal() {
+    document.getElementById('confirmModal').classList.remove('active');
+    confirmCallback = null;
+}
+function confirmOk() {
+    if (confirmCallback) confirmCallback();
+    closeConfirmModal();
 }
 
 // ==================== 列表渲染 ====================
@@ -1313,46 +1326,64 @@ function renderList() {
     const emptyState = document.getElementById('emptyState');
     const sorted = getSortedTasks();
 
-    const myTotal = allTasks.filter(t => t.owner === currentUser).length;
-    const myDone = allTasks.filter(t => t.owner === currentUser && t.completed).length;
-    document.getElementById('taskSummary').textContent = `我的：${myDone}/${myTotal} 完成 | 总计：${allTasks.length} 条`;
+    const myTotal = allTasks.filter(t => t.owner === currentUser && t.dailyDate !== todayStr()).length;
+    const myDone = allTasks.filter(t => t.owner === currentUser && t.status === 'done').length;
+    document.getElementById('taskSummary').textContent = `完成 ${myDone}/${myTotal} | 总计 ${allTasks.length}`;
 
     if (sorted.length === 0) { container.innerHTML = ''; emptyState.style.display = 'block'; return; }
-
     emptyState.style.display = 'none';
+
     container.innerHTML = sorted.map(task => {
-        const urgency = getUrgency(task.deadline, task.completed);
+        const urgency = getUrgency(task.deadline, task.status);
         const deadlineText = task.deadline ? formatDeadline(task.deadline) : '';
-        const remaining = task.deadline && !task.completed ? getRemaining(task.deadline) : '';
-        const descHtml = task.desc ? `<div class="task-desc">${escapeHtml(task.desc)}</div>` : '';
+        const remaining = task.deadline && task.status !== 'done' ? getRemaining(task.deadline) : '';
+        const descHtml = task.description ? `<div class="task-desc">${escapeHtml(task.description)}</div>` : '';
         const isMine = isMyTask(task);
-        const ownerClass = isMine ? 'me' : 'other';
-        const ownerLabel = isMine ? '我' : escapeHtml(task.owner);
-        const lockedHtml = isMine ? '' : '<span class="lock-icon" title="需密码验证">🔒</span>';
-        const createdTime = formatTime(task.createdAt);
-        const completedTime = task.completed && task.completedAt ? ` · ✅ ${formatTime(task.completedAt)}` : '';
+        const ps = task.priorityScore || 0;
+        const psClass = ps >= 50 ? 'high' : (ps >= 25 ? 'mid' : '');
+        const tagsHtml = (task.tags || []).map(t => `<span class="tag-badge tag-${t}">${t}</span>`).join('');
+        const privacyIcon = task.visibility === 'private' ? ' 🔒' : '';
+        const dailyIcon = task.isDaily ? ' 🔄' : '';
+        const statusBadge = task.status === 'done' ? '✅' : (task.status === 'in_progress' ? '🔄' : '📌');
 
         return `
-        <div class="task-item urgency-${urgency} ${task.completed ? 'completed' : ''} ${!isMine ? 'other-user' : ''}"
+        <div class="task-item urgency-${urgency} ${task.status === 'done' ? 'done' : ''} ${!isMine ? 'other-user' : ''}"
              draggable="true" data-id="${task.id}"
              ondragstart="onDragStart(event)" ondragend="onDragEnd(event)"
              ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
             <span class="drag-handle" title="拖拽排序">⋮⋮</span>
-            ${lockedHtml}
-            <span class="checkbox ${task.completed ? 'done' : ''}" onclick="tryToggleTask('${task.id}')" title="${isMine ? '切换完成状态' : '需密码验证'}"></span>
+            <span class="checkbox ${task.status === 'done' ? 'done' : ''}" onclick="tryToggleTask('${task.id}')" title="切换完成状态"></span>
             <div class="task-body">
-                <div class="task-title">${escapeHtml(task.title)}</div>
+                <div class="task-title">
+                    <span class="title-text">${statusBadge} ${escapeHtml(task.title)}${privacyIcon}${dailyIcon}</span>
+                    ${tagsHtml}
+                </div>
                 ${descHtml}
                 <div class="task-meta">
-                    <span class="owner-badge ${ownerClass}">${ownerLabel}</span>
-                    <span class="time-info" title="创建时间">📅 ${createdTime}</span>
-                    ${completedTime ? `<span class="time-info">${completedTime}</span>` : ''}
+                    <span class="owner-badge ${isMine ? 'me' : 'other'}">${isMine ? '我' : escapeHtml(task.owner)}</span>
+                    <span class="time-info">📅 ${formatTime(task.createdAt)}</span>
+                    ${task.status === 'done' && task.completedAt ? `<span class="time-info">✅ ${formatTime(task.completedAt)}</span>` : ''}
+                    <span class="priority-score ${psClass}">⚡${ps}分</span>
+                    <select class="status-select ${task.status}" onchange="updateTaskStatus('${task.id}', this.value)" onclick="event.stopPropagation();" ${!isMine ? 'disabled' : ''}>
+                        <option value="todo" ${task.status === 'todo' ? 'selected' : ''}>📌 未开始</option>
+                        <option value="in_progress" ${task.status === 'in_progress' ? 'selected' : ''}>🔄 进行中</option>
+                        <option value="done" ${task.status === 'done' ? 'selected' : ''}>✅ 已完成</option>
+                    </select>
                 </div>
             </div>
-            ${deadlineText ? `<span class="deadline-badge ${urgency === 'overdue' ? 'overdue' : urgency === 'today' ? 'today' : urgency === 'soon' ? 'soon' : 'normal'}" title="${remaining}">⏰ ${deadlineText}</span>` : ''}
-            <button class="btn-delete" onclick="tryDeleteTask('${task.id}')" title="${isMine ? '删除' : '需密码验证'}">×</button>
+            ${deadlineText ? `<span class="deadline-badge ${urgency}" title="${remaining}">⏰ ${deadlineText}</span>` : ''}
+            <button class="btn-icon focus-btn" onclick="openFocusMode('${task.id}')" title="专注模式">🎯</button>
+            <button class="btn-icon" onclick="tryDeleteTask('${task.id}')" title="删除">×</button>
         </div>`;
     }).join('');
+}
+
+function tryToggleTask(id) {
+    const task = allTasks.find(t => t.id === id);
+    if (!task) return;
+    if (!isMyTask(task)) { pendingAction = { type: 'status', taskId: id, status: task.status === 'done' ? 'todo' : 'done' }; showVerifyModal(task); return; }
+    const newStatus = task.status === 'done' ? 'todo' : 'done';
+    doUpdateStatus(id, newStatus);
 }
 
 // ==================== 拖拽排序 ====================
@@ -1362,7 +1393,7 @@ function onDragStart(e) {
     const id = e.currentTarget.dataset.id;
     const task = allTasks.find(t => t.id === id);
     if (!task) return;
-    if (!isMyTask(task)) { e.preventDefault(); tryDragDrop(id); return false; }
+    if (!isMyTask(task)) { e.preventDefault(); return; }
     draggedId = id;
     e.currentTarget.classList.add('dragging');
     e.dataTransfer.effectAllowed = 'move';
@@ -1390,39 +1421,32 @@ async function onDrop(e) {
     const targetId = e.currentTarget.dataset.id;
     if (!targetId || targetId === draggedId) return;
 
-    const targetTask = allTasks.find(t => t.id === targetId);
-    if (targetTask && !isMyTask(targetTask) && !window._dragVerified) {
-        tryDragDrop(targetId);
-        draggedId = null;
-        return;
-    }
-
     const sorted = getSortedTasks();
     const draggedTask = allTasks.find(t => t.id === draggedId);
     const targetIndex = sorted.findIndex(t => t.id === targetId);
     const draggedIndex = sorted.findIndex(t => t.id === draggedId);
 
-    if (draggedTask && targetIndex !== -1) {
+    if (draggedTask && targetIndex !== -1 && draggedIndex !== -1) {
         const newSorted = [...sorted];
         newSorted.splice(draggedIndex, 1);
         newSorted.splice(targetIndex, 0, draggedTask);
-        manualOrder = true;
+        sortMode = 'manual';
+        document.getElementById('btnAutoSort').classList.remove('active');
+        document.getElementById('btnManualSort').classList.add('active');
 
-        // 批量更新排序
-        const reorderData = newSorted.map((t, i) => ({ id: t.id, sortOrder: i }));
+        const now = Date.now();
+        const reorderData = newSorted.map((t, i) => ({ id: t.id, sortOrder: now + i }));
         try {
             await api('/api/tasks/reorder', { method: 'PUT', body: JSON.stringify({ tasks: reorderData }) });
             await loadTasks();
-            window._dragVerified = false;
             renderAll();
         } catch (e) { alert('排序失败：' + e.message); }
     }
 }
 
-// ==================== 日历渲染 ====================
+// ==================== 日历 ====================
 function renderCalendar() {
-    const year = calendarYear;
-    const month = calendarMonth;
+    const year = calendarYear, month = calendarMonth;
     document.getElementById('monthLabel').textContent = `${year}年 ${month + 1}月`;
     const grid = document.getElementById('calendarGrid');
     const weekHeaders = ['日','一','二','三','四','五','六'];
@@ -1436,9 +1460,9 @@ function renderCalendar() {
     const prevLastDay = new Date(year, month, 0).getDate();
     for (let i = startDayOfWeek - 1; i >= 0; i--) html += buildDayCell(year, month - 1, prevLastDay - i, true);
 
-    const today = new Date();
+    const now = new Date();
     for (let day = 1; day <= daysInMonth; day++) {
-        const isToday = (year === today.getFullYear() && month === today.getMonth() && day === today.getDate());
+        const isToday = (year === now.getFullYear() && month === now.getMonth() && day === now.getDate());
         html += buildDayCell(year, month, day, false, isToday);
     }
 
@@ -1449,51 +1473,63 @@ function renderCalendar() {
     grid.innerHTML = html;
 }
 
+function setCalendarFilter(filter) {
+    calendarFilter = filter;
+    document.getElementById('btnCalMy').classList.toggle('active', filter === 'my');
+    document.getElementById('btnCalGroup').classList.toggle('active', filter === 'group');
+    renderCalendar();
+}
+
+function getCalendarVisibleTasks() {
+    const visibleUsers = getVisibleUsers();
+    return allTasks.filter(t => {
+        if (calendarFilter === 'my') return t.owner === currentUser;
+        return visibleUsers.has(t.owner) && (t.visibility !== 'private' || t.owner === currentUser);
+    });
+}
+
 function buildDayCell(year, month, day, otherMonth, isToday) {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    const filteredTasks = getFilteredTasks();
-    const cellTasks = filteredTasks.filter(t => {
+    const visibleTasks = getCalendarVisibleTasks();
+    const cellTasks = visibleTasks.filter(t => {
         if (!t.deadline) return false;
         const d = new Date(t.deadline);
         return d.getFullYear() === year && d.getMonth() === month && d.getDate() === day;
     });
-
     const dots = cellTasks.slice(0, 5).map(t => {
-        const urgency = getUrgency(t.deadline, t.completed);
+        const urgency = getUrgency(t.deadline, t.status);
         return `<span class="day-dot ${urgency}"></span>`;
     }).join('');
-    const extra = cellTasks.length > 5 ? `<div class="day-task-count">+${cellTasks.length - 5} 更多</div>` : '';
-
+    const extra = cellTasks.length > 5 ? `<div class="day-task-count">+${cellTasks.length - 5}</div>` : '';
     return `<div class="day-cell ${otherMonth ? 'other-month' : ''} ${isToday ? 'today' : ''}" onclick="openDayDetail('${dateStr}')"><div class="day-num">${day}</div><div class="day-dots">${dots}</div>${extra}</div>`;
 }
 
 function openDayDetail(dateStr) {
     const [y, m, d] = dateStr.split('-').map(Number);
-    const filteredTasks = getFilteredTasks();
-    const cellTasks = filteredTasks.filter(t => {
+    const visibleTasks = getCalendarVisibleTasks();
+    const cellTasks = visibleTasks.filter(t => {
         if (!t.deadline) return false;
         const dl = new Date(t.deadline);
-        return dl.getFullYear() === parseInt(y) && dl.getMonth() === parseInt(m - 1) && dl.getDate() === parseInt(d);
+        return dl.getFullYear() === y && dl.getMonth() === m - 1 && dl.getDate() === d;
     });
-
     document.getElementById('dayDetailTitle').textContent = `${m}月${d}日 待办事项`;
     const content = document.getElementById('dayDetailContent');
     if (cellTasks.length === 0) {
-        content.innerHTML = '<div class="empty">📭 当天没有待办</div>';
+        content.innerHTML = '<div class="empty-state"><p>📭 当天没有待办</p></div>';
     } else {
         content.innerHTML = cellTasks.map(t => `
-            <div class="mini-task">
-                <div class="mini-title">${t.completed ? '✅ ' : ''}${escapeHtml(t.title)}</div>
-                ${t.desc ? `<div class="mini-desc">${escapeHtml(t.desc)}</div>` : ''}
-                <div class="mini-owner">👤 ${escapeHtml(t.owner)}</div>
+            <div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;">
+                <div style="font-weight:500;">${t.status === 'done' ? '✅ ' : ''}${escapeHtml(t.title)}</div>
+                ${t.description ? `<div style="font-size:11px;color:var(--text2);">${escapeHtml(t.description)}</div>` : ''}
+                <div style="font-size:10px;color:var(--purple);">👤 ${escapeHtml(t.owner)}</div>
             </div>`).join('');
     }
-    document.getElementById('dayDetail').classList.add('active');
+    document.getElementById('dayDetailOverlay').classList.add('active');
 }
 
 function closeDayDetail(e) {
-    if (e && e.target !== document.getElementById('dayDetail')) return;
-    document.getElementById('dayDetail').classList.remove('active');
+    if (e && e.target !== document.getElementById('dayDetailOverlay')) return;
+    document.getElementById('dayDetailOverlay').classList.remove('active');
 }
 
 function navigateMonth(delta) {
@@ -1503,61 +1539,457 @@ function navigateMonth(delta) {
     renderCalendar();
 }
 
-// ==================== 视图切换 ====================
-function switchView(view) {
-    currentView = view;
-    const listView = document.getElementById('listView');
-    const calView = document.getElementById('calendarView');
-    const addForm = document.getElementById('addForm');
-    const btnList = document.getElementById('btnListView');
-    const btnCal = document.getElementById('btnCalendarView');
+// ==================== 小组 ====================
+function renderGroups() {
+    const container = document.getElementById('groupList');
+    const empty = document.getElementById('groupEmpty');
+    const myGroups = allGroups.filter(g => g.members.find(m => m.username === currentUser));
 
-    if (view === 'calendar') {
-        listView.classList.add('hidden');
-        calView.classList.add('active');
-        addForm.classList.add('hidden');
-        btnList.classList.remove('active');
-        btnCal.classList.add('active');
-        const now = new Date();
-        calendarYear = now.getFullYear();
-        calendarMonth = now.getMonth();
-        renderCalendar();
+    if (myGroups.length === 0) { container.innerHTML = ''; empty.style.display = 'block'; return; }
+    empty.style.display = 'none';
+
+    container.innerHTML = myGroups.map(g => renderGroupCard(g)).join('');
+    myGroups.forEach(g => loadGroupMessages(g.id));
+}
+
+function renderGroupCard(g) {
+    const isOwner = g.owner === currentUser;
+    return `
+    <div class="group-card" id="groupCard_${g.id}">
+        <h4>👥 ${escapeHtml(g.name)} ${isOwner ? '<span style="font-size:10px;color:var(--primary);">(组长)</span>' : ''}</h4>
+        <div class="group-meta">${g.members.length} 人 · 创建于 ${formatTime(g.createdAt)}</div>
+        <div class="member-list">
+            ${g.members.map(m => `<span class="member-chip ${m.role}">${m.role === 'owner' ? '👑' : ''} ${escapeHtml(m.username)}</span>`).join('')}
+        </div>
+        <div class="messages-area" id="msgs_${g.id}"><div style="color:var(--text2);font-size:11px;text-align:center;">加载消息中...</div></div>
+        <div class="msg-input-row">
+            <select id="msgType_${g.id}">
+                <option value="chat">💬 聊天</option>
+                <option value="summary">📝 分享总结</option>
+                <option value="task_assign">📋 任务派送</option>
+            </select>
+            <input type="text" id="msgInput_${g.id}" placeholder="输入消息..." maxlength="300" onkeydown="if(event.key==='Enter')sendGroupMsg('${g.id}')">
+            <button onclick="sendGroupMsg('${g.id}')">发送</button>
+        </div>
+        ${isOwner ? `<button class="btn-sm" style="margin-top:6px;background:#e8f4fd;color:var(--primary);border-color:#b3d9f2;" onclick="showAssignModal('${g.id}')">📋 派送任务</button>` : ''}
+        ${isOwner ? `<button class="btn-sm danger" style="margin-top:6px;margin-left:4px;" onclick="deleteGroup('${g.id}')">解散小组</button>` : `<button class="btn-sm" style="margin-top:6px;" onclick="leaveGroup('${g.id}')">离开小组</button>`}
+    </div>`;
+}
+
+async function loadGroupMessages(groupId) {
+    try {
+        const msgs = await api(`/api/groups/${groupId}/messages`);
+        const area = document.getElementById('msgs_' + groupId);
+        if (!area) return;
+        if (msgs.length === 0) { area.innerHTML = '<div style="color:var(--text2);font-size:11px;text-align:center;">暂无消息</div>'; return; }
+        area.innerHTML = msgs.map(m => {
+            const typeLabel = m.type === 'summary' ? '📝总结' : (m.type === 'task_assign' ? '📋派送' : '💬聊天');
+            return `<div class="msg-item">
+                <span class="msg-from">${escapeHtml(m.from)}</span>
+                <span class="msg-type">${typeLabel}</span>
+                <span class="msg-time">${formatTime(m.createdAt)}</span>
+                <div>${escapeHtml(m.content)}</div>
+            </div>`;
+        }).join('');
+        area.scrollTop = area.scrollHeight;
+    } catch (e) { /* ignore */ }
+}
+
+async function sendGroupMsg(groupId) {
+    const input = document.getElementById('msgInput_' + groupId);
+    const typeSel = document.getElementById('msgType_' + groupId);
+    const content = input.value.trim();
+    if (!content) return;
+
+    // 如果是分享总结，获取今天的总结
+    if (typeSel.value === 'summary') {
+        try {
+            const summary = await api(`/api/daily-summary/${currentUser}?date=` + todayStr());
+            if (!summary || !summary.content) { alert('你今天还没有写总结，请先在统计面板写总结'); return; }
+            const msgContent = `📝 今日总结：${summary.content}`;
+            await api(`/api/groups/${groupId}/messages`, { method: 'POST', body: JSON.stringify({ from: currentUser, type: 'summary', content: msgContent }) });
+        } catch (e) { alert('分享失败：' + e.message); return; }
     } else {
-        listView.classList.remove('hidden');
-        calView.classList.remove('active');
-        addForm.classList.remove('hidden');
-        btnList.classList.add('active');
-        btnCal.classList.remove('active');
-        renderList();
+        try {
+            await api(`/api/groups/${groupId}/messages`, { method: 'POST', body: JSON.stringify({ from: currentUser, type: typeSel.value, content }) });
+        } catch (e) { alert('发送失败：' + e.message); return; }
+    }
+
+    input.value = '';
+    await loadGroupMessages(groupId);
+}
+
+// ==================== 任务派送 ====================
+let assignGroupId = null;
+let assignSelectedMembers = [];
+
+function showAssignModal(groupId) {
+    assignGroupId = groupId;
+    assignSelectedMembers = [];
+    const group = allGroups.find(g => g.id === groupId);
+    if (!group) return;
+    document.getElementById('assignGroupName').textContent = `小组：${group.name}`;
+    document.getElementById('assignTitle').value = '';
+    document.getElementById('assignDesc').value = '';
+    document.getElementById('assignDeadline').value = '';
+    document.getElementById('assignTag').value = '';
+    document.getElementById('assignErr').textContent = '';
+    // 渲染成员选择（排除组长自己）
+    const memberList = document.getElementById('assignMemberList');
+    const members = group.members.filter(m => m.username !== currentUser);
+    if (members.length === 0) {
+        memberList.innerHTML = '<span style="font-size:12px;color:var(--text2);">暂无其他成员</span>';
+    } else {
+        memberList.innerHTML = members.map(m => `
+            <button class="chip" id="assignChip_${m.username}" onclick="toggleAssignMember('${escapeHtml(m.username)}')" style="cursor:pointer;">${escapeHtml(m.username)}</button>
+        `).join('');
+    }
+    document.getElementById('assignModal').classList.add('active');
+}
+
+function toggleAssignMember(username) {
+    const chip = document.getElementById('assignChip_' + username);
+    const idx = assignSelectedMembers.indexOf(username);
+    if (idx >= 0) {
+        assignSelectedMembers.splice(idx, 1);
+        chip.classList.remove('active');
+    } else {
+        assignSelectedMembers.push(username);
+        chip.classList.add('active');
     }
 }
 
+function closeAssignModal() {
+    document.getElementById('assignModal').classList.remove('active');
+    assignGroupId = null;
+    assignSelectedMembers = [];
+}
+
+async function confirmAssign() {
+    const title = document.getElementById('assignTitle').value.trim();
+    if (!title) { document.getElementById('assignErr').textContent = '请输入任务标题'; return; }
+    if (assignSelectedMembers.length === 0) { document.getElementById('assignErr').textContent = '请选择至少一个成员'; return; }
+
+    const tag = document.getElementById('assignTag').value;
+    const tags = tag ? [tag] : [];
+    const groupId = assignGroupId;
+    const group = allGroups.find(g => g.id === groupId);
+
+    const btn = document.querySelector('#assignModal .btn-confirm');
+    btn.disabled = true;
+
+    try {
+        for (const username of assignSelectedMembers) {
+            await api('/api/tasks', { method: 'POST', body: JSON.stringify({
+                title,
+                description: document.getElementById('assignDesc').value.trim(),
+                tags,
+                deadline: document.getElementById('assignDeadline').value || null,
+                visibility: 'public',
+                isDaily: false,
+                groupId,
+                owner: username,
+                status: 'in_progress',
+            })});
+        }
+        // 发消息通知
+        const memberNames = assignSelectedMembers.join('、');
+        await api(`/api/groups/${groupId}/messages`, { method: 'POST', body: JSON.stringify({
+            from: currentUser, type: 'task_assign',
+            content: `📋 派送任务「${title}」给 ${memberNames}${document.getElementById('assignDeadline').value ? '，截止：' + document.getElementById('assignDeadline').value : ''}`,
+        })});
+
+        closeAssignModal();
+        showToast(`✅ 已派送任务给 ${assignSelectedMembers.length} 位成员！`, 'motivation');
+        await loadTasks();
+        await loadGroupMessages(groupId);
+        renderFilterChips();
+        renderAll();
+    } catch (e) {
+        document.getElementById('assignErr').textContent = e.message;
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+function showCreateGroup() {
+    groupModalMode = 'create';
+    document.getElementById('groupModalTitle').textContent = '创建小组';
+    document.getElementById('groupModalConfirm').textContent = '创建';
+    document.getElementById('groupNameInput').value = '';
+    document.getElementById('groupModalErr').textContent = '';
+    document.getElementById('groupModal').classList.add('active');
+    setTimeout(() => document.getElementById('groupNameInput').focus(), 100);
+}
+
+function showJoinGroup() {
+    groupModalMode = 'join';
+    document.getElementById('groupModalTitle').textContent = '加入小组';
+    document.getElementById('groupModalConfirm').textContent = '加入';
+    document.getElementById('groupNameInput').value = '';
+    document.getElementById('groupNameInput').placeholder = '输入小组名称';
+    document.getElementById('groupModalErr').textContent = '';
+    document.getElementById('groupModal').classList.add('active');
+    setTimeout(() => document.getElementById('groupNameInput').focus(), 100);
+}
+
+function closeGroupModal() { document.getElementById('groupModal').classList.remove('active'); }
+
+async function confirmGroupAction() {
+    const name = document.getElementById('groupNameInput').value.trim();
+    const errEl = document.getElementById('groupModalErr');
+    if (!name) { errEl.textContent = '请输入小组名称'; return; }
+
+    try {
+        if (groupModalMode === 'create') {
+            await api('/api/groups', { method: 'POST', body: JSON.stringify({ name, owner: currentUser }) });
+            showToast('✅ 小组创建成功！', 'motivation');
+        } else {
+            // 按名称查找小组
+            const group = allGroups.find(g => g.name === name);
+            if (!group) { errEl.textContent = '小组不存在，请检查名称'; return; }
+            await api(`/api/groups/${group.id}/join`, { method: 'POST', body: JSON.stringify({ username: currentUser }) });
+            showToast('✅ 已加入小组！', 'motivation');
+        }
+        closeGroupModal();
+        await loadGroups();
+        await loadGroupOptions();
+        renderGroups();
+    } catch (e) {
+        errEl.textContent = e.message;
+    }
+}
+
+async function leaveGroup(groupId) {
+    if (!confirm('确定离开这个小组吗？')) return;
+    try {
+        await api(`/api/groups/${groupId}/leave`, { method: 'POST', body: JSON.stringify({ username: currentUser }) });
+        await loadGroups();
+        await loadGroupOptions();
+        renderGroups();
+    } catch (e) { alert('操作失败：' + e.message); }
+}
+
+async function deleteGroup(groupId) {
+    if (!confirm('确定解散这个小组吗？此操作不可恢复！')) return;
+    // 通过 leave 逐一移除（或直接操作 data）
+    const group = allGroups.find(g => g.id === groupId);
+    if (!group) return;
+    try {
+        // 移除除自己外的所有人，然后自己离开
+        for (const m of group.members) {
+            if (m.username !== currentUser) {
+                await api(`/api/groups/${groupId}/leave`, { method: 'POST', body: JSON.stringify({ username: m.username }) });
+            }
+        }
+        await api(`/api/groups/${groupId}/leave`, { method: 'POST', body: JSON.stringify({ username: currentUser }) });
+        await loadGroups();
+        await loadGroupOptions();
+        renderGroups();
+    } catch (e) { alert('操作失败：' + e.message); }
+}
+
+// ==================== 统计面板 ====================
+async function renderStats() {
+    document.getElementById('summaryDate').textContent = `(${todayStr()})`;
+    await loadCheckinInfo();
+    await loadSummary();
+    await loadDailyGoal();
+    await loadLeaderboard();
+}
+
+async function loadCheckinInfo() {
+    try {
+        const ci = await api(`/api/checkin/${currentUser}?date=` + todayStr());
+        const grid = document.getElementById('statsGrid');
+        grid.innerHTML = `
+            <div class="stat-card fire"><div class="stat-num">${ci.taskCompleted || 0}</div><div class="stat-label">今日已完成</div></div>
+            <div class="stat-card rate"><div class="stat-num">${ci.target || 0}</div><div class="stat-label">每日目标</div></div>
+            <div class="stat-card ${ci.checkedIn ? 'streak' : 'total'}"><div class="stat-num">${ci.checkedIn ? '✅' : '⏳'}</div><div class="stat-label">打卡状态</div></div>
+            <div class="stat-card total"><div class="stat-num">${ci.hasSummary ? '✅' : '📝'}</div><div class="stat-label">今日总结</div></div>
+        `;
+    } catch (e) { /* ignore */ }
+}
+
+async function loadSummary() {
+    try {
+        const summary = await api(`/api/daily-summary/${currentUser}?date=` + todayStr());
+        if (summary) {
+            document.getElementById('summaryInput').value = summary.content || '';
+            document.getElementById('summaryVisibility').value = summary.visibility || 'private';
+        }
+    } catch (e) { /* ignore */ }
+}
+
+async function toggleSummaryHistory() {
+    const list = document.getElementById('summaryHistoryList');
+    const toggle = document.getElementById('summaryHistoryToggle');
+    if (list.style.display === 'none') {
+        list.style.display = 'block';
+        toggle.textContent = '▼ 收起';
+        await loadSummaryHistory();
+    } else {
+        list.style.display = 'none';
+        toggle.textContent = '▶ 展开';
+    }
+}
+
+async function loadSummaryHistory() {
+    try {
+        const summaries = await api(`/api/daily-summaries/${encodeURIComponent(currentUser)}`);
+        const list = document.getElementById('summaryHistoryList');
+        if (summaries.length === 0) {
+            list.innerHTML = '<div style="color:var(--text2);font-size:12px;text-align:center;padding:12px;">暂无历史总结</div>';
+            return;
+        }
+        list.innerHTML = summaries.map(s => `
+            <div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-weight:600;">📅 ${s.date}</span>
+                    <span style="font-size:10px;color:var(--text2);">${s.visibility === 'public' ? '🌐 公开' : '🔒 私人'}</span>
+                </div>
+                <div style="margin-top:4px;color:var(--text);white-space:pre-wrap;">${escapeHtml(s.content)}</div>
+            </div>
+        `).join('');
+    } catch (e) { /* ignore */ }
+}
+
+async function saveSummary() {
+    const content = document.getElementById('summaryInput').value.trim();
+    if (!content) { alert('请输入总结内容'); return; }
+    try {
+        await api('/api/daily-summary', { method: 'POST', body: JSON.stringify({
+            username: currentUser,
+            content,
+            visibility: document.getElementById('summaryVisibility').value,
+        }) });
+        showToast('✅ 总结已保存！', 'motivation');
+        await loadCheckinInfo();
+    } catch (e) { alert('保存失败：' + e.message); }
+}
+
+async function shareSummaryToGroups() {
+    const content = document.getElementById('summaryInput').value.trim();
+    if (!content) { alert('请先写总结再分享'); return; }
+    // 先保存
+    await saveSummary();
+    // 分享到所有我的小组
+    const myGroups = allGroups.filter(g => g.members.find(m => m.username === currentUser));
+    if (myGroups.length === 0) { alert('你还没有加入任何小组'); return; }
+
+    let count = 0;
+    for (const g of myGroups) {
+        try {
+            await api(`/api/groups/${g.id}/messages`, { method: 'POST', body: JSON.stringify({
+                from: currentUser, type: 'summary',
+                content: `📝 今日总结：${content}`,
+            }) });
+            count++;
+        } catch (e) { /* skip */ }
+    }
+    if (count > 0) showToast(`✅ 已分享到 ${count} 个小组！`, 'motivation');
+}
+
+async function loadDailyGoal() {
+    try {
+        const goal = await api(`/api/daily-goal/${currentUser}?date=` + todayStr());
+        document.getElementById('dailyGoalInput').value = goal.target || 3;
+    } catch (e) { /* ignore */ }
+}
+
+async function setDailyGoal() {
+    const target = parseInt(document.getElementById('dailyGoalInput').value) || 3;
+    try {
+        await api('/api/daily-goal', { method: 'POST', body: JSON.stringify({ username: currentUser, target }) });
+        showToast('✅ 每日目标已保存！', 'motivation');
+        await loadCheckinInfo();
+    } catch (e) { alert('保存失败：' + e.message); }
+}
+
+async function doCheckin() {
+    try {
+        const result = await api('/api/checkin', { method: 'POST', body: JSON.stringify({ username: currentUser }) });
+        if (result.checkedIn) {
+            showToast('🎉 打卡成功！今天太棒了！', 'streak');
+        } else {
+            showToast(result.message, '');
+        }
+        await loadCheckinInfo();
+    } catch (e) { alert('打卡失败：' + e.message); }
+}
+
+function switchLeaderboard(type) {
+    leaderboardType = type;
+    document.getElementById('btnLbPersonal').classList.toggle('active', type === 'personal');
+    document.getElementById('btnLbGroup').classList.toggle('active', type === 'group');
+    document.getElementById('lbTitle').textContent = type === 'personal' ? '🏆 本周排行榜' : '🏆 小组排行榜';
+    loadLeaderboard();
+}
+
+async function loadLeaderboard() {
+    try {
+        const lb = await api(`/api/leaderboard?type=${leaderboardType}`);
+        const content = document.getElementById('lbContent');
+        if (lb.rankings.length === 0) {
+            content.innerHTML = '<div style="color:var(--text2);text-align:center;padding:16px;">暂无数据</div>';
+            return;
+        }
+
+        if (leaderboardType === 'personal') {
+            content.innerHTML = lb.rankings.map((r, i) => {
+                let rankClass = '';
+                let rankIcon = String(i + 1);
+                if (i === 0) { rankClass = 'gold'; rankIcon = '🥇'; }
+                else if (i === 1) { rankClass = 'silver'; rankIcon = '🥈'; }
+                else if (i === 2) { rankClass = 'bronze'; rankIcon = '🥉'; }
+                const isMe = r.username === currentUser;
+                return `<div class="lb-row" style="${isMe ? 'background:#e8f4fd;border-radius:8px;padding:8px;' : ''}">
+                    <span class="lb-rank ${rankClass}">${rankIcon}</span>
+                    <span class="lb-name">${escapeHtml(r.username)} ${r.streak > 0 ? '🔥'.repeat(Math.min(r.streak, 5)) : ''}</span>
+                    <span class="lb-stat">本周${r.weeklyDone}个 · 完成率${r.completionRate}%</span>
+                </div>`;
+            }).join('');
+        } else {
+            content.innerHTML = lb.rankings.map((r, i) => {
+                let rankIcon = String(i + 1);
+                if (i === 0) rankIcon = '🥇'; else if (i === 1) rankIcon = '🥈'; else if (i === 2) rankIcon = '🥉';
+                return `<div class="lb-row">
+                    <span class="lb-rank">${rankIcon}</span>
+                    <span class="lb-name">👥 ${escapeHtml(r.groupName)}</span>
+                    <span class="lb-stat">平均完成率 ${r.avgCompletionRate}% · ${r.memberCount}人</span>
+                </div>`;
+            }).join('');
+        }
+    } catch (e) { /* ignore */ }
+}
+
+// ==================== 全局渲染 ====================
 function renderAll() {
-    if (currentView === 'calendar') renderCalendar();
-    else renderList();
+    if (currentTab === 'calendar') renderCalendar();
+    else if (currentTab === 'list') renderList();
+    else if (currentTab === 'group') renderGroups();
+    else if (currentTab === 'stats') renderStats();
 }
 
 // ==================== 键盘快捷键 ====================
 document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeDayDetail();
+        closeVerifyModal();
+        closeConfirmModal();
+        closeGroupModal();
+        closeAssignModal();
+        if (document.getElementById('focusOverlay').classList.contains('active')) confirmExitFocus();
+    }
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault();
-        if (document.getElementById('mainApp').classList.contains('active')) addTask();
-    }
-    if (e.key === 'Escape') {
-        document.getElementById('dayDetail').classList.remove('active');
-        closeVerifyModal();
+        if (document.getElementById('mainApp').classList.contains('active') && currentTab === 'list') addTask();
     }
 });
 
-document.getElementById('authPassword').addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') handleAuth();
-});
-document.getElementById('authConfirmPwd').addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') handleAuth();
-});
-document.getElementById('verifyPwd').addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') confirmVerify();
-});
+document.getElementById('authPassword').addEventListener('keydown', function(e) { if (e.key === 'Enter') handleAuth(); });
+document.getElementById('authConfirmPwd').addEventListener('keydown', function(e) { if (e.key === 'Enter') handleAuth(); });
+document.getElementById('verifyPwd').addEventListener('keydown', function(e) { if (e.key === 'Enter') confirmVerify(); });
 
 // ==================== 启动 ====================
 async function init() {
@@ -1565,7 +1997,6 @@ async function init() {
 
     const savedUser = localStorage.getItem(CURRENT_USER_KEY);
     if (savedUser) {
-        // 验证该用户还存在于服务器
         const exists = allUsers.find(u => u.username === savedUser);
         if (exists) {
             currentUser = savedUser;
@@ -1574,7 +2005,6 @@ async function init() {
         }
     }
 
-    // 显示登录页
     document.getElementById('authPage').classList.remove('hidden');
     document.getElementById('mainApp').classList.remove('active');
     renderQuickUsers();

@@ -5,3 +5,10 @@ services:
     buildCommand: npm install
     startCommand: node server.js
     plan: free
+    envVars:
+      - key: DATA_DIR
+        value: /var/data
+    disk:
+      name: data
+      mountPath: /var/data
+      sizeGB: 1
