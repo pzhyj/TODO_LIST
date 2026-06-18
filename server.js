@@ -2,14 +2,120 @@ const express = require('express');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const jwt = require('jsonwebtoken');
+const helmet = require('helmet');
+const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-// 生产环境使用 Render 持久磁盘，本地开发使用项目目录
 const DATA_DIR = process.env.DATA_DIR || __dirname;
 const DATA_FILE = path.join(DATA_DIR, 'data.json');
 
-app.use(express.json());
+// JWT 密钥（生产环境必须通过环境变量注入）
+const JWT_SECRET = process.env.JWT_SECRET || 'todo-list-dev-secret-change-in-production';
+const JWT_EXPIRES = '7d';
+
+// ==================== 安全中间件 ====================
+
+// 隐藏技术栈信息
+app.disable('x-powered-by');
+
+// HTTP 安全头（helmet）
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            imgSrc: ["'self'", "data:"],
+            connectSrc: ["'self'"],
+        },
+    },
+}));
+
+// CORS：只允许自己的域名
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',')
+    : ['https://todo-list-7edt.onrender.com', 'http://localhost:3000', 'http://localhost:5500', 'http://127.0.0.1:5500'];
+app.use(cors({
+    origin: function (origin, callback) {
+        // 允许无 origin 的请求（如 curl、Postman、同源）
+        if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(null, false);
+        }
+    },
+    credentials: true,
+}));
+
+app.use(express.json({ limit: '10kb' }));
+
+// 全局速率限制：每 IP 每 15 分钟 100 次
+const globalLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: '请求过于频繁，请稍后再试' },
+});
+app.use('/api/', globalLimiter);
+
+// 登录/注册更严格：每 IP 每 15 分钟 10 次
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: '尝试次数过多，请 15 分钟后再试' },
+});
+
+// ==================== JWT 认证中间件 ====================
+function authMiddleware(req, res, next) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: '未授权，请先登录' });
+    }
+    try {
+        const token = authHeader.split(' ')[1];
+        const decoded = jwt.verify(token, JWT_SECRET);
+        req.user = decoded; // { username, iat, exp }
+        next();
+    } catch (e) {
+        return res.status(401).json({ error: '登录已过期，请重新登录' });
+    }
+}
+
+// 可选认证：如果带了 Token 就解析，但不强制
+function optionalAuth(req, res, next) {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        try {
+            const token = authHeader.split(' ')[1];
+            req.user = jwt.verify(token, JWT_SECRET);
+        } catch (e) { /* token 无效，忽略 */ }
+    }
+    next();
+}
+
+// ==================== 输入验证 ====================
+const USERNAME_REGEX = /^[一-龥a-zA-Z0-9_]{2,20}$/;
+
+function validateUsername(username) {
+    if (!username || typeof username !== 'string') return '用户名不能为空';
+    if (!USERNAME_REGEX.test(username)) return '用户名只能包含中文、字母、数字和下划线，长度2-20';
+    return null;
+}
+
+function validatePassword(password) {
+    if (!password || typeof password !== 'string') return '密码不能为空';
+    if (password.length < 8) return '密码至少8位';
+    if (!/[A-Z]/.test(password)) return '密码需包含大写字母';
+    if (!/[a-z]/.test(password)) return '密码需包含小写字母';
+    if (!/[0-9]/.test(password)) return '密码需包含数字';
+    return null;
+}
 
 // ==================== 数据读写 ====================
 function readData() {
@@ -19,12 +125,10 @@ function readData() {
         }
         const raw = fs.readFileSync(DATA_FILE, 'utf-8');
         const data = JSON.parse(raw);
-        // 向后兼容：确保新字段存在
         if (!data.groups) data.groups = [];
         if (!data.dailyGoals) data.dailyGoals = [];
         if (!data.dailySummaries) data.dailySummaries = [];
         if (!data.checkIns) data.checkIns = [];
-        // 升级旧任务格式
         data.tasks = data.tasks.map(t => ({
             title: '', description: '', tags: [], status: 'todo',
             priorityScore: 0, sortOrder: Date.now(), deadline: null,
@@ -33,7 +137,6 @@ function readData() {
             createdAt: new Date().toISOString(), completedAt: null,
             ...t
         }));
-        // 升级旧用户格式
         data.users = data.users.map(u => ({
             stats: { streak: 0, longestStreak: 0, totalCompleted: 0, lastCompletedDate: null, weeklyCompletions: 0 },
             ...u
@@ -58,6 +161,31 @@ function todayStr() {
 
 function genId() {
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+// ==================== 权限辅助 ====================
+
+// 获取用户可见的其他用户集合（同组成员）
+function getVisibleUsers(data, username) {
+    const visible = new Set([username]);
+    data.groups.forEach(g => {
+        const isMember = g.members.find(m => m.username === username);
+        if (isMember) {
+            g.members.forEach(m => visible.add(m.username));
+        }
+    });
+    return visible;
+}
+
+// 检查用户是否有权操作某个任务
+function canModifyTask(data, taskId, username) {
+    const task = data.tasks.find(t => t.id === taskId);
+    if (!task) return false;
+    if (task.owner === username) return true;
+    // 组长可以管理小组成员的任务
+    const group = data.groups.find(g => g.id === task.groupId);
+    if (group && group.owner === username) return true;
+    return false;
 }
 
 // ==================== 优先级计算 ====================
@@ -96,7 +224,6 @@ function updateUserStats(data, username) {
             user.stats.longestStreak = user.stats.streak;
         }
     }
-    // 本周完成数
     const now = new Date();
     const weekStart = new Date(now);
     weekStart.setDate(now.getDate() - now.getDay());
@@ -128,17 +255,22 @@ function ensureDailyTasks(data, username, date) {
     });
 }
 
-// ==================== 鉴权中间件（简单） ====================
-// 不强制鉴权，但校验密码的操作在各端点内处理
-
 // ==================== API 路由 ====================
+
+// 对认证端点应用更严格的速率限制
+app.use('/api/login', authLimiter);
+app.use('/api/register', authLimiter);
+app.use('/api/verify-password', authLimiter);
 
 // --- 注册 ---
 app.post('/api/register', (req, res) => {
     const { username, password } = req.body;
-    if (!username || !password) return res.status(400).json({ error: '用户名和密码不能为空' });
-    if (username.length < 2) return res.status(400).json({ error: '用户名至少2个字符' });
-    if (password.length < 3) return res.status(400).json({ error: '密码至少3位' });
+
+    const usernameErr = validateUsername(username);
+    if (usernameErr) return res.status(400).json({ error: usernameErr });
+
+    const passwordErr = validatePassword(password);
+    if (passwordErr) return res.status(400).json({ error: passwordErr });
 
     const data = readData();
     if (data.users.find(u => u.username === username)) {
@@ -152,59 +284,97 @@ app.post('/api/register', (req, res) => {
         stats: { streak: 0, longestStreak: 0, totalCompleted: 0, lastCompletedDate: null, weeklyCompletions: 0 }
     });
     writeData(data);
-    res.json({ success: true, user: { username, createdAt: new Date().toISOString() } });
+
+    // 注册成功后自动颁发 Token
+    const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
+    res.json({ success: true, token, user: { username, createdAt: new Date().toISOString() } });
 });
 
 // --- 登录 ---
 app.post('/api/login', (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) return res.status(400).json({ error: '用户名和密码不能为空' });
+
     const data = readData();
     const user = data.users.find(u => u.username === username);
-    if (!user) return res.status(400).json({ error: '用户不存在，请先注册' });
-    if (sha256(password) !== user.passwordHash) return res.status(400).json({ error: '密码错误' });
-    res.json({ success: true, user: { username: user.username, createdAt: user.createdAt, stats: user.stats } });
+
+    // 不区分用户不存在和密码错误（防用户枚举）
+    if (!user || sha256(password) !== user.passwordHash) {
+        return res.status(401).json({ error: '用户名或密码错误' });
+    }
+
+    const token = jwt.sign({ username: user.username }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
+    res.json({
+        success: true,
+        token,
+        user: { username: user.username, createdAt: user.createdAt, stats: user.stats }
+    });
 });
 
-// --- 验证密码 ---
-app.post('/api/verify-password', (req, res) => {
+// --- 验证密码（需要认证，统一错误防枚举） ---
+app.post('/api/verify-password', authMiddleware, (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) return res.status(400).json({ error: '用户名和密码不能为空' });
+
     const data = readData();
     const user = data.users.find(u => u.username === username);
-    if (!user) return res.status(400).json({ error: '用户不存在' });
-    if (sha256(password) !== user.passwordHash) return res.status(400).json({ error: '密码错误' });
+
+    // 不区分用户不存在和密码错误（防用户枚举）
+    if (!user || sha256(password) !== user.passwordHash) {
+        return res.status(400).json({ error: '用户名或密码错误' });
+    }
     res.json({ success: true });
 });
 
-// --- 获取用户列表 ---
-app.get('/api/users', (req, res) => {
+// --- 获取用户列表（需认证，只返回可见用户） ---
+app.get('/api/users', authMiddleware, (req, res) => {
     const data = readData();
-    res.json(data.users.map(u => ({ username: u.username, createdAt: u.createdAt, stats: u.stats })));
+    const visibleUsers = getVisibleUsers(data, req.user.username);
+    res.json(data.users
+        .filter(u => visibleUsers.has(u.username))
+        .map(u => ({ username: u.username, createdAt: u.createdAt, stats: u.stats })));
 });
 
 // ==================== 任务 API ====================
 
-// 获取任务（支持筛选）
-app.get('/api/tasks', (req, res) => {
+// 获取任务（需认证，只返回可见任务）
+app.get('/api/tasks', authMiddleware, (req, res) => {
     const data = readData();
     const { username, date } = req.query;
+    const currentUser = req.user.username;
 
-    // 如果是请求某用户的每日任务，先自动生成
-    if (username && date) {
+    // 每日任务自动生成（仅自己的）
+    if (username && date && username === currentUser) {
         ensureDailyTasks(data, username, date);
         writeData(data);
     }
 
     let tasks = data.tasks;
+    const visibleUsers = getVisibleUsers(data, currentUser);
+
+    // 过滤：自己的任务 + 同组可见用户的公开任务
+    tasks = tasks.filter(t => {
+        if (t.owner === currentUser) return true;
+        if (!visibleUsers.has(t.owner)) return false;
+        if (t.visibility === 'private') return false;
+        return true;
+    });
+
     res.json(tasks);
 });
 
-// 获取某日每日任务
-app.get('/api/tasks/daily/:username', (req, res) => {
+// 获取某日每日任务（需认证）
+app.get('/api/tasks/daily/:username', authMiddleware, (req, res) => {
     const data = readData();
     const { username } = req.params;
+    const currentUser = req.user.username;
     const date = req.query.date || todayStr();
+
+    // IDOR 防护：只能查看自己的每日任务
+    if (username !== currentUser) {
+        return res.status(403).json({ error: '无权访问他人数据' });
+    }
+
     ensureDailyTasks(data, username, date);
     writeData(data);
     const dailyTasks = data.tasks.filter(t =>
@@ -213,10 +383,11 @@ app.get('/api/tasks/daily/:username', (req, res) => {
     res.json(dailyTasks);
 });
 
-// 添加任务
-app.post('/api/tasks', (req, res) => {
-    const { title, owner } = req.body;
-    if (!title || !owner) return res.status(400).json({ error: '标题和创建者不能为空' });
+// 添加任务（需认证，owner 强制从 Token 获取）
+app.post('/api/tasks', authMiddleware, (req, res) => {
+    const { title } = req.body;
+    const owner = req.user.username; // 强制使用 Token 中的用户名，防止冒充
+    if (!title) return res.status(400).json({ error: '标题不能为空' });
 
     const data = readData();
     const task = {
@@ -245,20 +416,29 @@ app.post('/api/tasks', (req, res) => {
     res.json(task);
 });
 
-// 更新任务
-app.put('/api/tasks/:id', (req, res) => {
+// 更新任务（需认证 + 权限检查）
+app.put('/api/tasks/:id', authMiddleware, (req, res) => {
     const { id } = req.params;
     const data = readData();
     const task = data.tasks.find(t => t.id === id);
     if (!task) return res.status(404).json({ error: '任务不存在' });
 
-    const allowed = ['title','description','tags','status','priorityScore','sortOrder','deadline',
-        'timeBlock','groupId','supervisor','visibility','isDaily','dailyDate','completedAt'];
+    // IDOR 防护：只有任务所有者或组长可以修改
+    if (!canModifyTask(data, id, req.user.username)) {
+        return res.status(403).json({ error: '无权操作此任务' });
+    }
+
+    const allowed = ['title', 'description', 'tags', 'status', 'priorityScore', 'sortOrder', 'deadline',
+        'timeBlock', 'groupId', 'supervisor', 'visibility', 'isDaily', 'dailyDate', 'completedAt'];
     allowed.forEach(k => {
         if (req.body[k] !== undefined) task[k] = req.body[k];
     });
 
-    // 如果标记完成
+    // 不允许通过此接口修改 owner
+    if (req.body.owner !== undefined) {
+        delete req.body.owner; // 静默忽略
+    }
+
     if (req.body.status === 'done' && !task.completedAt) {
         task.completedAt = new Date().toISOString();
     }
@@ -266,7 +446,6 @@ app.put('/api/tasks/:id', (req, res) => {
         task.completedAt = null;
     }
 
-    // 重新计算优先级
     if (req.body.deadline !== undefined || req.body.status !== undefined || req.body.isDaily !== undefined) {
         task.priorityScore = calcPriority(task);
     }
@@ -276,52 +455,69 @@ app.put('/api/tasks/:id', (req, res) => {
     res.json(task);
 });
 
-// 批量排序
-app.put('/api/tasks/reorder', (req, res) => {
+// 批量排序（需认证，只排序自己的）
+app.put('/api/tasks/reorder', authMiddleware, (req, res) => {
     const { tasks } = req.body;
     if (!tasks || !Array.isArray(tasks)) return res.status(400).json({ error: '无效的排序数据' });
     const data = readData();
     tasks.forEach(({ id, sortOrder }) => {
         const task = data.tasks.find(t => t.id === id);
-        if (task) task.sortOrder = sortOrder;
+        // 只能排序自己的任务
+        if (task && task.owner === req.user.username) {
+            task.sortOrder = sortOrder;
+        }
     });
     writeData(data);
     res.json({ success: true });
 });
 
-// 删除任务
-app.delete('/api/tasks/:id', (req, res) => {
+// 删除任务（需认证 + 权限检查）
+app.delete('/api/tasks/:id', authMiddleware, (req, res) => {
     const { id } = req.params;
     const data = readData();
     const index = data.tasks.findIndex(t => t.id === id);
     if (index === -1) return res.status(404).json({ error: '任务不存在' });
+
+    // IDOR 防护
+    if (!canModifyTask(data, id, req.user.username)) {
+        return res.status(403).json({ error: '无权操作此任务' });
+    }
+
     data.tasks.splice(index, 1);
     writeData(data);
     res.json({ success: true });
 });
 
-// 专注模式记录
-app.post('/api/tasks/:id/focus', (req, res) => {
+// 专注模式记录（需认证 + 权限检查）
+app.post('/api/tasks/:id/focus', authMiddleware, (req, res) => {
     const { id } = req.params;
     const data = readData();
     const task = data.tasks.find(t => t.id === id);
     if (!task) return res.status(404).json({ error: '任务不存在' });
-    // 记录专注开始（可扩展存储专注时长）
+
+    if (!canModifyTask(data, id, req.user.username)) {
+        return res.status(403).json({ error: '无权操作此任务' });
+    }
+
     res.json({ success: true, message: '专注模式已开始', task: { id: task.id, title: task.title } });
 });
 
 // ==================== 小组 API ====================
 
-// 获取所有小组
-app.get('/api/groups', (req, res) => {
+// 获取所有小组（需认证，只返回自己所属的）
+app.get('/api/groups', authMiddleware, (req, res) => {
     const data = readData();
-    res.json(data.groups);
+    const myGroups = data.groups.filter(g =>
+        g.members.find(m => m.username === req.user.username)
+    );
+    res.json(myGroups);
 });
 
-// 创建小组
-app.post('/api/groups', (req, res) => {
-    const { name, owner } = req.body;
-    if (!name || !owner) return res.status(400).json({ error: '小组名和创建者不能为空' });
+// 创建小组（需认证，owner 强制从 Token 获取）
+app.post('/api/groups', authMiddleware, (req, res) => {
+    const { name } = req.body;
+    const owner = req.user.username;
+    if (!name) return res.status(400).json({ error: '小组名不能为空' });
     const data = readData();
     const group = {
         id: genId(),
@@ -336,11 +532,10 @@ app.post('/api/groups', (req, res) => {
     res.json(group);
 });
 
-// 加入小组
-app.post('/api/groups/:id/join', (req, res) => {
+// 加入小组（需认证，只能自己加入）
+app.post('/api/groups/:id/join', authMiddleware, (req, res) => {
     const { id } = req.params;
-    const { username } = req.body;
-    if (!username) return res.status(400).json({ error: '用户名不能为空' });
+    const username = req.user.username; // 从 Token 获取，不允许冒充
     const data = readData();
     const group = data.groups.find(g => g.id === id);
     if (!group) return res.status(404).json({ error: '小组不存在' });
@@ -352,13 +547,16 @@ app.post('/api/groups/:id/join', (req, res) => {
     res.json(group);
 });
 
-// 离开小组
-app.post('/api/groups/:id/leave', (req, res) => {
+// 离开小组（需认证，只能自己离开）
+app.post('/api/groups/:id/leave', authMiddleware, (req, res) => {
     const { id } = req.params;
-    const { username } = req.body;
+    const username = req.user.username;
     const data = readData();
     const group = data.groups.find(g => g.id === id);
     if (!group) return res.status(404).json({ error: '小组不存在' });
+    if (!group.members.find(m => m.username === username)) {
+        return res.status(400).json({ error: '你不在该小组中' });
+    }
     group.members = group.members.filter(m => m.username !== username);
     if (group.members.length === 0) {
         data.groups = data.groups.filter(g => g.id !== id);
@@ -370,19 +568,23 @@ app.post('/api/groups/:id/leave', (req, res) => {
     res.json(group);
 });
 
-// 获取小组消息
-app.get('/api/groups/:id/messages', (req, res) => {
+// 获取小组消息（需认证，只允许成员）
+app.get('/api/groups/:id/messages', authMiddleware, (req, res) => {
     const data = readData();
     const group = data.groups.find(g => g.id === req.params.id);
     if (!group) return res.status(404).json({ error: '小组不存在' });
+    if (!group.members.find(m => m.username === req.user.username)) {
+        return res.status(403).json({ error: '你不是该小组成员' });
+    }
     res.json(group.messages || []);
 });
 
-// 发送小组消息
-app.post('/api/groups/:id/messages', (req, res) => {
+// 发送小组消息（需认证，from 强制从 Token 获取）
+app.post('/api/groups/:id/messages', authMiddleware, (req, res) => {
     const { id } = req.params;
-    const { from, type, content } = req.body;
-    if (!from || !type || !content) return res.status(400).json({ error: '消息内容不完整' });
+    const from = req.user.username;
+    const { type, content } = req.body;
+    if (!type || !content) return res.status(400).json({ error: '消息内容不完整' });
     const data = readData();
     const group = data.groups.find(g => g.id === id);
     if (!group) return res.status(404).json({ error: '小组不存在' });
@@ -398,9 +600,10 @@ app.post('/api/groups/:id/messages', (req, res) => {
 
 // ==================== 每日目标 API ====================
 
-app.post('/api/daily-goal', (req, res) => {
-    const { username, target } = req.body;
-    if (!username || target == null) return res.status(400).json({ error: '参数不完整' });
+app.post('/api/daily-goal', authMiddleware, (req, res) => {
+    const username = req.user.username; // 强制从 Token 获取
+    const { target } = req.body;
+    if (target == null) return res.status(400).json({ error: '参数不完整' });
     const data = readData();
     const date = todayStr();
     const existing = data.dailyGoals.find(g => g.username === username && g.date === date);
@@ -413,7 +616,11 @@ app.post('/api/daily-goal', (req, res) => {
     res.json({ username, date, target });
 });
 
-app.get('/api/daily-goal/:username', (req, res) => {
+app.get('/api/daily-goal/:username', authMiddleware, (req, res) => {
+    // IDOR 防护：只能查看自己的
+    if (req.params.username !== req.user.username) {
+        return res.status(403).json({ error: '无权访问他人数据' });
+    }
     const data = readData();
     const date = req.query.date || todayStr();
     const goal = data.dailyGoals.find(g => g.username === req.params.username && g.date === date);
@@ -422,9 +629,10 @@ app.get('/api/daily-goal/:username', (req, res) => {
 
 // ==================== 每日总结 API ====================
 
-app.post('/api/daily-summary', (req, res) => {
-    const { username, content, visibility } = req.body;
-    if (!username || !content) return res.status(400).json({ error: '参数不完整' });
+app.post('/api/daily-summary', authMiddleware, (req, res) => {
+    const username = req.user.username; // 强制从 Token 获取
+    const { content, visibility } = req.body;
+    if (!content) return res.status(400).json({ error: '内容不能为空' });
     const data = readData();
     const date = todayStr();
     const existing = data.dailySummaries.find(s => s.username === username && s.date === date);
@@ -443,25 +651,46 @@ app.post('/api/daily-summary', (req, res) => {
     res.json({ success: true });
 });
 
-app.get('/api/daily-summary/:username', (req, res) => {
+app.get('/api/daily-summary/:username', authMiddleware, (req, res) => {
     const data = readData();
     const date = req.query.date || todayStr();
     const summary = data.dailySummaries.find(s => s.username === req.params.username && s.date === date);
+
+    // IDOR 防护：私人总结只能自己查看
+    if (summary && summary.visibility === 'private' && req.params.username !== req.user.username) {
+        return res.status(403).json({ error: '无权查看私人总结' });
+    }
+    // 检查是否为同组成员
+    if (summary && summary.visibility !== 'private') {
+        const visibleUsers = getVisibleUsers(data, req.user.username);
+        if (!visibleUsers.has(req.params.username)) {
+            return res.status(403).json({ error: '无权查看此总结' });
+        }
+    }
     res.json(summary || null);
 });
 
-// 获取公开总结列表（小组内可见）
-app.get('/api/daily-summaries/public', (req, res) => {
+// 获取公开总结列表（需认证，只返回同组成员）
+app.get('/api/daily-summaries/public', authMiddleware, (req, res) => {
     const data = readData();
     const date = req.query.date || todayStr();
-    const summaries = data.dailySummaries.filter(s => s.visibility === 'public' && s.date === date);
+    const visibleUsers = getVisibleUsers(data, req.user.username);
+    const summaries = data.dailySummaries.filter(s =>
+        s.visibility === 'public' && s.date === date && visibleUsers.has(s.username)
+    );
     res.json(summaries);
 });
 
-// 获取用户所有总结历史
-app.get('/api/daily-summaries/:username', (req, res) => {
+// 获取用户所有总结历史（需认证）
+app.get('/api/daily-summaries/:username', authMiddleware, (req, res) => {
     let username;
     try { username = decodeURIComponent(req.params.username); } catch (e) { username = req.params.username; }
+
+    // IDOR 防护：只能查看自己的
+    if (username !== req.user.username) {
+        return res.status(403).json({ error: '无权访问他人数据' });
+    }
+
     const data = readData();
     const summaries = data.dailySummaries
         .filter(s => s.username === username)
@@ -471,10 +700,14 @@ app.get('/api/daily-summaries/:username', (req, res) => {
 
 // ==================== 打卡 API ====================
 
-app.get('/api/checkin/:username', (req, res) => {
+app.get('/api/checkin/:username', authMiddleware, (req, res) => {
+    // IDOR 防护：只能查看自己的
+    if (req.params.username !== req.user.username) {
+        return res.status(403).json({ error: '无权访问他人数据' });
+    }
+
     const data = readData();
     const date = req.query.date || todayStr();
-    // 计算当日任务完成数
     const completedToday = data.tasks.filter(t =>
         t.owner === req.params.username &&
         t.status === 'done' &&
@@ -490,9 +723,8 @@ app.get('/api/checkin/:username', (req, res) => {
     res.json({ username: req.params.username, date, taskCompleted: completedToday, target, targetMet, hasSummary, checkedIn });
 });
 
-app.post('/api/checkin', (req, res) => {
-    const { username } = req.body;
-    if (!username) return res.status(400).json({ error: '用户名不能为空' });
+app.post('/api/checkin', authMiddleware, (req, res) => {
+    const username = req.user.username; // 强制从 Token 获取
     const data = readData();
     const date = todayStr();
 
@@ -507,7 +739,6 @@ app.post('/api/checkin', (req, res) => {
     const hasSummary = !!summary;
     const checkedIn = targetMet && hasSummary;
 
-    // 保存打卡记录
     const existingCI = data.checkIns.find(c => c.username === username && c.date === date);
     if (existingCI) {
         existingCI.taskCompleted = completedToday;
@@ -524,19 +755,28 @@ app.post('/api/checkin', (req, res) => {
         writeData(data);
     }
 
-    res.json({ username, date, taskCompleted: completedToday, target, targetMet, hasSummary, checkedIn,
+    res.json({
+        username, date, taskCompleted: completedToday, target, targetMet, hasSummary, checkedIn,
         message: checkedIn ? '🎉 打卡成功！' : (targetMet ? '还差每日总结' : (hasSummary ? '任务数量未达标' : '任务和总结都未完成'))
     });
 });
 
 // ==================== 统计 & 排行榜 API ====================
 
-app.get('/api/stats/:username', (req, res) => {
+app.get('/api/stats/:username', authMiddleware, (req, res) => {
     let username;
     try { username = decodeURIComponent(req.params.username); } catch (e) { username = req.params.username; }
+
     const data = readData();
     const user = data.users.find(u => u.username === username);
     if (!user) return res.status(404).json({ error: '用户不存在' });
+
+    // 只能查看自己或同组成员的统计
+    const visibleUsers = getVisibleUsers(data, req.user.username);
+    if (!visibleUsers.has(username)) {
+        return res.status(403).json({ error: '无权查看此用户统计' });
+    }
+
     const tasks = data.tasks.filter(t => t.owner === username);
     const total = tasks.length;
     const done = tasks.filter(t => t.status === 'done').length;
@@ -546,17 +786,20 @@ app.get('/api/stats/:username', (req, res) => {
     res.json({
         username: username,
         stats: user.stats,
-        total,
-        done,
-        completionRate: rate,
-        todayDone,
+        total, done, completionRate: rate, todayDone,
     });
 });
 
-app.get('/api/stats/group/:groupId', (req, res) => {
+app.get('/api/stats/group/:groupId', authMiddleware, (req, res) => {
     const data = readData();
     const group = data.groups.find(g => g.id === req.params.groupId);
     if (!group) return res.status(404).json({ error: '小组不存在' });
+
+    // 只允许小组成员查看
+    if (!group.members.find(m => m.username === req.user.username)) {
+        return res.status(403).json({ error: '你不是该小组成员' });
+    }
+
     const memberStats = group.members.map(m => {
         const tasks = data.tasks.filter(t => t.owner === m.username && t.groupId === group.id);
         const total = tasks.length;
@@ -569,12 +812,16 @@ app.get('/api/stats/group/:groupId', (req, res) => {
     res.json({ groupId: group.id, groupName: group.name, avgCompletionRate: avgRate, members: memberStats });
 });
 
-app.get('/api/leaderboard', (req, res) => {
+app.get('/api/leaderboard', authMiddleware, (req, res) => {
     const data = readData();
     const type = req.query.type || 'personal';
+    const visibleUsers = getVisibleUsers(data, req.user.username);
 
     if (type === 'group') {
-        const groupStats = data.groups.map(g => {
+        const myGroups = data.groups.filter(g =>
+            g.members.find(m => m.username === req.user.username)
+        );
+        const groupStats = myGroups.map(g => {
             const memberStats = g.members.map(m => {
                 const tasks = data.tasks.filter(t => t.owner === m.username && t.groupId === g.id);
                 const total = tasks.length;
@@ -587,22 +834,24 @@ app.get('/api/leaderboard', (req, res) => {
         return res.json({ type: 'group', rankings: groupStats });
     }
 
-    // 个人排行：本周完成任务数
+    // 个人排行：只显示同组可见用户
     const now = new Date();
     const weekStart = new Date(now);
     weekStart.setDate(now.getDate() - now.getDay());
     weekStart.setHours(0, 0, 0, 0);
 
-    const userStats = data.users.map(u => {
-        const weeklyDone = data.tasks.filter(t =>
-            t.owner === u.username && t.status === 'done' &&
-            t.completedAt && new Date(t.completedAt) >= weekStart
-        ).length;
-        const total = data.tasks.filter(t => t.owner === u.username).length;
-        const done = data.tasks.filter(t => t.owner === u.username && t.status === 'done').length;
-        const rate = total > 0 ? Math.round((done / total) * 100) : 0;
-        return { username: u.username, weeklyDone, totalDone: done, completionRate: rate, streak: u.stats.streak || 0 };
-    }).sort((a, b) => b.weeklyDone - a.weeklyDone);
+    const userStats = data.users
+        .filter(u => visibleUsers.has(u.username))
+        .map(u => {
+            const weeklyDone = data.tasks.filter(t =>
+                t.owner === u.username && t.status === 'done' &&
+                t.completedAt && new Date(t.completedAt) >= weekStart
+            ).length;
+            const total = data.tasks.filter(t => t.owner === u.username).length;
+            const done = data.tasks.filter(t => t.owner === u.username && t.status === 'done').length;
+            const rate = total > 0 ? Math.round((done / total) * 100) : 0;
+            return { username: u.username, weeklyDone, totalDone: done, completionRate: rate, streak: u.stats.streak || 0 };
+        }).sort((a, b) => b.weeklyDone - a.weeklyDone);
 
     res.json({ type: 'personal', rankings: userStats });
 });
@@ -611,7 +860,6 @@ app.get('/api/leaderboard', (req, res) => {
 app.use(express.static(__dirname));
 
 // ==================== 启动服务 ====================
-// 确保数据目录存在（Render 持久磁盘挂载时不会自动创建）
 if (!fs.existsSync(DATA_DIR)) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
 }
