@@ -6,9 +6,7 @@ services:
     startCommand: node server.js
     plan: free
     envVars:
+      - key: JWT_SECRET
+        value: c9377bf50fbbc0f833a18cdade68b594f407ef69bbd2ac0fd2554c51195fc44b
       - key: DATA_DIR
         value: /var/data
-    disk:
-      name: data
-      mountPath: /var/data
-      sizeGB: 1
