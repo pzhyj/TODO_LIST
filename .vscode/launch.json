@@ -1,0 +1,33 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "🚀 启动服务器",
+            "program": "${workspaceFolder}/server.js",
+            "console": "integratedTerminal"
+        },
+        {
+            "type": "chrome",
+            "request": "launch",
+            "name": "🌐 打开应用 (Chrome)",
+            "url": "http://localhost:3000",
+            "webRoot": "${workspaceFolder}",
+            "preLaunchTask": ""
+        },
+        {
+            "type": "msedge",
+            "request": "launch",
+            "name": "🌐 打开应用 (Edge)",
+            "url": "http://localhost:3000",
+            "webRoot": "${workspaceFolder}"
+        }
+    ],
+    "compounds": [
+        {
+            "name": "🚀 完整启动 (服务器 + 浏览器)",
+            "configurations": ["🚀 启动服务器", "🌐 打开应用 (Chrome)"]
+        }
+    ]
+}

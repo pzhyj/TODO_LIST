@@ -1,10 +1,13 @@
 {
-    "security.workspace.trust.enabled": true,
-    "liveServer.settings.port": 5500,
-    "liveServer.settings.root": "/",
-    "liveServer.settings.CustomBrowser": "chrome",
-    "liveServer.settings.AdvanceCustomBrowserCmdLine": "",
-    "liveServer.settings.NoBrowser": false,
+    "livePreview.portNumber": 3000,
+    "livePreview.defaultPreviewPath": "/",
+    "livePreview.httpHeaders": {
+        "Content-Security-Policy": "default-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' http://localhost:3000 https://todo-list-7edt.onrender.com ws://localhost:3000"
+    },
+    "livePreview.serverRoot": "/",
+    "livePreview.openPreviewTarget": "External Browser",
+    "liveServer.settings.port": 0,
+    "liveServer.settings.NoBrowser": true,
     "liveServer.settings.ignoreFiles": [
         ".vscode/**",
         "node_modules/**",
