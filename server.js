@@ -83,7 +83,7 @@ async function pushToCloud() {
 function scheduleCloudPush() {
     blobPushPending = true;
     if (blobPushTimer) clearTimeout(blobPushTimer);
-    blobPushTimer = setTimeout(pushToCloud, 800);
+    blobPushTimer = setTimeout(pushToCloud, 100); // 100ms 防抖，确保快速同步
 }
 
 // ==================== 安全中间件 ====================
