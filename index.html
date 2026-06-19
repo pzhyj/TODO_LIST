@@ -1179,9 +1179,11 @@ async function updateTaskStatus(id, newStatus) {
     await doUpdateStatus(id, newStatus);
 }
 
-async function doUpdateStatus(id, newStatus) {
+async function doUpdateStatus(id, newStatus, ownerPassword) {
     try {
-        await api(`/api/tasks/${id}`, { method: 'PUT', body: JSON.stringify({ status: newStatus }) });
+        const body = { status: newStatus };
+        if (ownerPassword) body.ownerPassword = ownerPassword;
+        await api(`/api/tasks/${id}`, { method: 'PUT', body: JSON.stringify(body) });
         if (newStatus === 'done') {
             showToast(randomMotivation(), 'motivation');
         }
@@ -1324,16 +1326,17 @@ async function confirmVerify() {
 
     const action = pendingAction.type;
     const taskId = pendingAction.taskId;
+    const ownerPwd = pwd; // 关闭弹窗前保存密码
     closeVerifyModal();
 
     if (action === 'delete') {
         if (!confirm('密码验证通过！确定删除这条待办吗？')) return;
-        await api(`/api/tasks/${taskId}`, { method: 'DELETE' });
+        await api(`/api/tasks/${taskId}`, { method: 'DELETE', body: JSON.stringify({ ownerPassword: ownerPwd }) });
         await loadTasks();
         renderFilterChips();
         renderAll();
     } else if (action === 'status') {
-        await doUpdateStatus(taskId, pendingAction.status);
+        await doUpdateStatus(taskId, pendingAction.status, ownerPwd);
     }
 }
 
@@ -1776,13 +1779,13 @@ async function confirmGroupAction() {
 
     try {
         if (groupModalMode === 'create') {
-            await api('/api/groups', { method: 'POST', body: JSON.stringify({ name, owner: currentUser }) });
+            await api('/api/groups', { method: 'POST', body: JSON.stringify({ name }) });
             showToast('✅ 小组创建成功！', 'motivation');
         } else {
-            // 按名称查找小组
-            const group = allGroups.find(g => g.name === name);
+            // 通过 API 搜索小组（而不是只在本地已加入列表搜索）
+            const group = await api(`/api/groups/search?name=${encodeURIComponent(name)}`);
             if (!group) { errEl.textContent = '小组不存在，请检查名称'; return; }
-            await api(`/api/groups/${group.id}/join`, { method: 'POST', body: JSON.stringify({ username: currentUser }) });
+            await api(`/api/groups/${group.id}/join`, { method: 'POST' });
             showToast('✅ 已加入小组！', 'motivation');
         }
         closeGroupModal();

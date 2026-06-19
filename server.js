@@ -254,13 +254,19 @@ function getVisibleUsers(data, username) {
 }
 
 // 检查用户是否有权操作某个任务
-function canModifyTask(data, taskId, username) {
+// ownerPassword: 可选，如果提供了任务所有者的正确密码，也允许操作
+function canModifyTask(data, taskId, username, ownerPassword) {
     const task = data.tasks.find(t => t.id === taskId);
     if (!task) return false;
     if (task.owner === username) return true;
     // 组长可以管理小组成员的任务
     const group = data.groups.find(g => g.id === task.groupId);
     if (group && group.owner === username) return true;
+    // 密码验证通过：提供了任务所有者的正确密码
+    if (ownerPassword) {
+        const owner = data.users.find(u => u.username === task.owner);
+        if (owner && sha256(ownerPassword) === owner.passwordHash) return true;
+    }
     return false;
 }
 
@@ -499,8 +505,8 @@ app.put('/api/tasks/:id', authMiddleware, (req, res) => {
     const task = data.tasks.find(t => t.id === id);
     if (!task) return res.status(404).json({ error: '任务不存在' });
 
-    // IDOR 防护：只有任务所有者或组长可以修改
-    if (!canModifyTask(data, id, req.user.username)) {
+    // IDOR 防护：只有任务所有者、组长或密码验证通过者可以修改
+    if (!canModifyTask(data, id, req.user.username, req.body.ownerPassword)) {
         return res.status(403).json({ error: '无权操作此任务' });
     }
 
@@ -554,8 +560,8 @@ app.delete('/api/tasks/:id', authMiddleware, (req, res) => {
     const index = data.tasks.findIndex(t => t.id === id);
     if (index === -1) return res.status(404).json({ error: '任务不存在' });
 
-    // IDOR 防护
-    if (!canModifyTask(data, id, req.user.username)) {
+    // IDOR 防护：只有任务所有者、组长或密码验证通过者可以删除
+    if (!canModifyTask(data, id, req.user.username, req.body.ownerPassword)) {
         return res.status(403).json({ error: '无权操作此任务' });
     }
 
@@ -587,6 +593,16 @@ app.get('/api/groups', authMiddleware, (req, res) => {
         g.members.find(m => m.username === req.user.username)
     );
     res.json(myGroups);
+});
+
+// 搜索小组（需认证，按名称精确查找，返回公开信息用于加入）
+app.get('/api/groups/search', authMiddleware, (req, res) => {
+    const { name } = req.query;
+    if (!name) return res.status(400).json({ error: '请提供小组名称' });
+    const data = readData();
+    const group = data.groups.find(g => g.name === name);
+    if (!group) return res.json(null);
+    res.json({ id: group.id, name: group.name, memberCount: group.members.length, owner: group.owner });
 });
 
 // 创建小组（需认证，owner 强制从 Token 获取）
