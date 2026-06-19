@@ -17,7 +17,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'todo-list-dev-secret-change-in-pro
 const JWT_EXPIRES = '7d';
 
 // ==================== 云存储持久化 (jsonblob.com) ====================
-const BLOB_ID = process.env.BLOB_ID || null;
+const BLOB_ID = process.env.BLOB_ID || '019ee06d-fa54-70ed-8f80-fd13c2c158d5';
 let blobEnabled = !!BLOB_ID;
 let blobPushPending = false;
 let blobPushTimer = null;
