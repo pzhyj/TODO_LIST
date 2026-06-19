@@ -16,6 +16,76 @@ const DATA_FILE = path.join(DATA_DIR, 'data.json');
 const JWT_SECRET = process.env.JWT_SECRET || 'todo-list-dev-secret-change-in-production';
 const JWT_EXPIRES = '7d';
 
+// ==================== 云存储持久化 (jsonblob.com) ====================
+const BLOB_ID = process.env.BLOB_ID || null;
+let blobEnabled = !!BLOB_ID;
+let blobPushPending = false;
+let blobPushTimer = null;
+
+function blobRequest(method, body) {
+    return new Promise((resolve, reject) => {
+        const https = require('https');
+        const data = body ? JSON.stringify(body) : null;
+        const opts = {
+            hostname: 'jsonblob.com',
+            path: '/api/jsonBlob/' + BLOB_ID,
+            method,
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+            },
+            timeout: 10000,
+        };
+        if (data) opts.headers['Content-Length'] = Buffer.byteLength(data);
+        const req = https.request(opts, res => {
+            let b = '';
+            res.on('data', c => b += c);
+            res.on('end', () => {
+                try { resolve({ status: res.statusCode, body: JSON.parse(b) }); }
+                catch (e) { resolve({ status: res.statusCode, body: b }); }
+            });
+        });
+        req.on('error', reject);
+        req.on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
+        if (data) req.write(data);
+        req.end();
+    });
+}
+
+async function loadFromCloud() {
+    if (!blobEnabled) return false;
+    try {
+        const result = await blobRequest('GET');
+        if (result.status === 200 && result.body && (result.body.users || result.body.tasks)) {
+            writeDataSync(result.body);
+            console.log('📥 已从云存储恢复数据');
+            return true;
+        }
+    } catch (e) {
+        console.warn('⚠️ 云存储读取失败:', e.message);
+    }
+    return false;
+}
+
+async function pushToCloud() {
+    if (!blobEnabled) return;
+    try {
+        const raw = fs.readFileSync(DATA_FILE, 'utf-8');
+        const data = JSON.parse(raw);
+        await blobRequest('PUT', data);
+        blobPushPending = false;
+    } catch (e) {
+        blobPushPending = true;
+        console.warn('⚠️ 云存储推送失败:', e.message);
+    }
+}
+
+function scheduleCloudPush() {
+    blobPushPending = true;
+    if (blobPushTimer) clearTimeout(blobPushTimer);
+    blobPushTimer = setTimeout(pushToCloud, 800);
+}
+
 // ==================== 安全中间件 ====================
 
 // 隐藏技术栈信息
@@ -147,8 +217,13 @@ function readData() {
     }
 }
 
-function writeData(data) {
+function writeDataSync(data) {
     fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+}
+
+function writeData(data) {
+    writeDataSync(data);
+    scheduleCloudPush();
 }
 
 function sha256(text) {
@@ -860,15 +935,37 @@ app.get('/api/leaderboard', authMiddleware, (req, res) => {
 app.use(express.static(__dirname));
 
 // ==================== 启动服务 ====================
-if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-}
-app.listen(PORT, () => {
-    console.log(`✅ TODO LIST 服务器已启动: http://localhost:${PORT}`);
-    console.log(`📁 数据目录: ${DATA_DIR}`);
-    const data = readData();
-    if (!data.users.length && !data.tasks.length) {
-        writeData({ users: [], tasks: [], groups: [], dailyGoals: [], dailySummaries: [], checkIns: [] });
-        console.log('📄 已初始化 data.json');
+async function startServer() {
+    // 1. 确保数据目录存在
+    if (!fs.existsSync(DATA_DIR)) {
+        fs.mkdirSync(DATA_DIR, { recursive: true });
     }
-});
+
+    // 2. 优先从云存储恢复数据，否则初始化本地文件
+    if (blobEnabled) {
+        const restored = await loadFromCloud();
+        if (!restored) {
+            const data = readData();
+            if (!data.users.length && !data.tasks.length) {
+                writeDataSync({ users: [], tasks: [], groups: [], dailyGoals: [], dailySummaries: [], checkIns: [] });
+                console.log('📄 首次部署，已初始化空数据');
+            }
+            scheduleCloudPush();
+        }
+    } else {
+        const data = readData();
+        if (!data.users.length && !data.tasks.length) {
+            writeDataSync({ users: [], tasks: [], groups: [], dailyGoals: [], dailySummaries: [], checkIns: [] });
+            console.log('📄 已初始化 data.json（本地文件模式）');
+        }
+    }
+
+    // 3. 启动 HTTP 服务
+    app.listen(PORT, () => {
+        console.log(`✅ TODO LIST 服务器已启动: http://localhost:${PORT}`);
+        console.log(`📁 数据目录: ${DATA_DIR}`);
+        console.log(`☁️  云存储: ${blobEnabled ? '已启用' : '未启用'}`);
+    });
+}
+
+startServer();

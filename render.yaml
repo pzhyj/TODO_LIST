@@ -10,3 +10,5 @@ services:
         value: c9377bf50fbbc0f833a18cdade68b594f407ef69bbd2ac0fd2554c51195fc44b
       - key: DATA_DIR
         value: /var/data
+      - key: BLOB_ID
+        value: 019ee06d-fa54-70ed-8f80-fd13c2c158d5
